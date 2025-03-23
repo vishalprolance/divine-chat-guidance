@@ -1,8 +1,9 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Mic, Send, StopCircle } from 'lucide-react';
+import { Mic, Send, StopCircle, Globe } from 'lucide-react';
 import { Button } from './ui/button';
 import { queryGemini } from '../services/geminiService';
+import { Select } from './ui/select';
 
 const ChatInterface = () => {
   const [messages, setMessages] = useState<Array<{type: 'user' | 'bot', text: string}>>([]);
@@ -10,8 +11,17 @@ const ChatInterface = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [language, setLanguage] = useState('en-US'); // Default language
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+
+  // List of supported languages
+  const languages = [
+    { code: 'en-US', name: 'English' },
+    { code: 'hi-IN', name: 'Hindi' },
+    { code: 'kn-IN', name: 'Kannada' },
+    { code: 'sa-IN', name: 'Sanskrit' },
+  ];
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -20,6 +30,16 @@ const ChatInterface = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Pre-load voices when component mounts
+  useEffect(() => {
+    if ('speechSynthesis' in window) {
+      // This ensures voices are loaded in Safari and other browsers
+      window.speechSynthesis.onvoiceschanged = () => {
+        window.speechSynthesis.getVoices();
+      };
+    }
+  }, []);
 
   const handleSendMessage = async (text: string) => {
     if (!text.trim()) return;
@@ -59,11 +79,24 @@ const ChatInterface = () => {
       utterance.rate = 0.9; // Slightly slower for clarity
       utterance.pitch = 1;
       
+      // Try to match the language of the utterance to the current speech recognition language
+      utterance.lang = language;
+      
       // Get available voices
       const voices = window.speechSynthesis.getVoices();
-      const preferredVoice = voices.find(voice => 
-        voice.name.includes('Male') || voice.name.includes('Google')
+      
+      // Try to find a voice that matches the current language
+      let preferredVoice = voices.find(voice => 
+        voice.lang.startsWith(language.split('-')[0]) || 
+        voice.name.includes('Google')
       );
+      
+      // Fallback to any available voice if no language match
+      if (!preferredVoice) {
+        preferredVoice = voices.find(voice => 
+          voice.name.includes('Male') || voice.name.includes('Google')
+        );
+      }
       
       if (preferredVoice) {
         utterance.voice = preferredVoice;
@@ -73,15 +106,28 @@ const ChatInterface = () => {
     }
   };
 
+  const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setLanguage(e.target.value);
+    
+    // If currently recording, restart with new language
+    if (isRecording) {
+      stopRecording();
+      // Short delay to ensure previous recognition is stopped
+      setTimeout(() => {
+        startRecording(e.target.value);
+      }, 300);
+    }
+  };
+
   const toggleRecording = async () => {
     if (!isRecording) {
-      startRecording();
+      startRecording(language);
     } else {
       stopRecording();
     }
   };
 
-  const startRecording = () => {
+  const startRecording = (selectedLanguage: string) => {
     setTranscript('');
     
     if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
@@ -90,15 +136,11 @@ const ChatInterface = () => {
       
       recognition.continuous = true;
       recognition.interimResults = true;
-      
-      // Enable multiple languages
-      // Note: not all browsers support all languages
-      // The browser will use the best match from this list
-      recognition.lang = 'en-US'; // Default to English
+      recognition.lang = selectedLanguage;
       
       recognition.onstart = () => {
         setIsRecording(true);
-        console.log('Speech recognition started');
+        console.log('Speech recognition started in language:', selectedLanguage);
       };
       
       recognition.onresult = (event) => {
@@ -180,6 +222,25 @@ const ChatInterface = () => {
       </div>
       
       <div className="input-container">
+        <div className="flex mb-2">
+          <label htmlFor="language-select" className="flex items-center text-sm text-divine-blue/70 mr-2">
+            <Globe className="h-4 w-4 mr-1" />
+            Language:
+          </label>
+          <select
+            id="language-select"
+            value={language}
+            onChange={handleLanguageChange}
+            className="text-sm rounded border-divine-gold/30 bg-white/70 focus:ring-divine-gold/50 focus:border-divine-gold/50"
+          >
+            {languages.map((lang) => (
+              <option key={lang.code} value={lang.code}>
+                {lang.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        
         <input
           type="text"
           value={input}

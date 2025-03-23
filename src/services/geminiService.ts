@@ -16,10 +16,23 @@ export async function queryGemini(prompt: string, language: string = "en-US"): P
     // Select the appropriate model
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     
-    // Create a system prompt for Bhagavad Gita guidance
-    const systemPrompt = "You are a spiritual guide who provides wisdom from the Bhagavad Gita. " +
-      "Answer questions with relevant verses and explanations that reflect the teachings of Lord Krishna. " +
-      `Respond only in ${getLanguageDisplayName(language)} language. Keep responses concise and thoughtful.`;
+    // Create a system prompt for Bhagavad Gita guidance with language instructions
+    let systemPrompt = "You are a spiritual guide who provides wisdom from the Bhagavad Gita. ";
+    
+    // Check the selected language and adjust the prompt accordingly
+    if (language === "en-US") {
+      systemPrompt += "Answer questions with relevant verses and explanations that reflect the teachings of Lord Krishna. " +
+        "Keep responses concise and thoughtful in English.";
+    } else if (language === "hi-IN") {
+      systemPrompt += "निम्नलिखित प्रश्न का उत्तर हिंदी में दें। भगवद गीता के संबंधित श्लोकों और व्याख्याओं के साथ उत्तर दें जो भगवान कृष्ण की शिक्षाओं को दर्शाते हैं। " +
+        "उत्तर संक्षिप्त और विचारपूर्ण रखें।";
+    } else if (language === "kn-IN") {
+      systemPrompt += "ಈ ಕೆಳಗಿನ ಪ್ರಶ್ನೆಗೆ ಕನ್ನಡದಲ್ಲಿ ಉತ್ತರಿಸಿ. ಭಗವದ್ಗೀತೆಯ ಸಂಬಂಧಿತ ಶ್ಲೋಕಗಳು ಮತ್ತು ವಿವರಣೆಗಳೊಂದಿಗೆ ಉತ್ತರಿಸಿ ಅವುಗಳು ಭಗವಾನ್ ಕೃಷ್ಣನ ಬೋಧನೆಗಳನ್ನು ಪ್ರತಿಬಿಂಬಿಸುತ್ತವೆ. " +
+        "ಉತ್ತರಗಳನ್ನು ಸಂಕ್ಷಿಪ್ತ ಮತ್ತು ಆಲೋಚನಾತ್ಮಕವಾಗಿರಿಸಿ.";
+    } else if (language === "sa-IN") {
+      systemPrompt += "अधोलिखितप्रश्नस्य उत्तरं संस्कृतभाषायां प्रयच्छतु। भगवद्गीतायाः संबद्धश्लोकैः व्याख्यानैः च उत्तरं ददातु, यानि श्रीकृष्णस्य उपदेशान् प्रतिबिम्बयन्ति। " +
+        "उत्तरं संक्षिप्तं विचारपूर्णं च रक्षतु।";
+    }
     
     // Configure the chat
     const generationConfig = {

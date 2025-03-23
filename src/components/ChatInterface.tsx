@@ -62,15 +62,30 @@ const ChatInterface = () => {
       speakResponse(response.text);
     } catch (error) {
       console.error("Error processing message:", error);
+      
+      // Get error message in the selected language
+      const errorMessages = {
+        "en-US": "I apologize, but I'm having trouble connecting to the wisdom right now. Please try again later.",
+        "hi-IN": "मैं क्षमा चाहता हूं, लेकिन मुझे इस समय ज्ञान से जुड़ने में समस्या हो रही है। कृपया बाद में पुनः प्रयास करें।",
+        "kn-IN": "ನಾನು ಕ್ಷಮೆ ಕೇಳುತ್ತೇನೆ, ಆದರೆ ನನಗೆ ಈಗ ಜ್ಞಾನದೊಂದಿಗೆ ಸಂಪರ್ಕ ಸಾಧಿಸಲು ತೊಂದರೆಯಾಗುತ್ತಿದೆ. ದಯವಿಟ್ಟು ನಂತರ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+        "sa-IN": "अहं क्षमां प्रार्थये, परन्तु मम अधुना ज्ञानेन सह संयोजने समस्या अस्ति। कृपया पश्चात् पुनः प्रयत्नं कुर्वन्तु।"
+      };
+      
+      const errorMessage = errorMessages[language] || errorMessages["en-US"];
+      
       toast({
         title: "Error",
-        description: "I apologize, but I'm having trouble connecting to the wisdom right now. Please try again later.",
+        description: errorMessage,
         variant: "destructive"
       });
+      
       setMessages(prev => [...prev, { 
         type: 'bot', 
-        text: "I apologize, but I'm having trouble connecting to the wisdom right now. Please try again later." 
+        text: errorMessage
       }]);
+      
+      // Speak the error message in the selected language
+      speakResponse(errorMessage);
     } finally {
       setIsProcessing(false);
     }
@@ -82,6 +97,8 @@ const ChatInterface = () => {
       window.speechSynthesis.cancel();
       
       const utterance = new SpeechSynthesisUtterance(text);
+      
+      // Optimize speech parameters for better clarity
       utterance.rate = 0.9; // Slightly slower for clarity
       utterance.pitch = 1;
       
@@ -91,23 +108,56 @@ const ChatInterface = () => {
       // Get available voices
       const voices = window.speechSynthesis.getVoices();
       
-      // Try to find a voice that matches the current language
-      let preferredVoice = voices.find(voice => 
-        voice.lang.startsWith(language.split('-')[0]) || 
-        voice.name.includes(language.split('-')[0])
-      );
+      // Voice selection based on language
+      let preferredVoice = null;
+      
+      if (language === "hi-IN") {
+        // Try to find a Hindi voice
+        preferredVoice = voices.find(voice => 
+          voice.lang === "hi-IN" || 
+          voice.name.includes("Hindi") ||
+          voice.name.includes("Indian")
+        );
+      } else if (language === "kn-IN") {
+        // Try to find a Kannada voice
+        preferredVoice = voices.find(voice => 
+          voice.lang === "kn-IN" || 
+          voice.name.includes("Kannada") ||
+          voice.name.includes("Indian")
+        );
+      } else if (language === "sa-IN") {
+        // Try to find a Sanskrit or Indian voice (Sanskrit is rare)
+        preferredVoice = voices.find(voice => 
+          voice.lang === "sa-IN" || 
+          voice.name.includes("Sanskrit") ||
+          voice.name.includes("Hindi") ||  // Fallback to Hindi for Sanskrit
+          voice.name.includes("Indian")
+        );
+      } else {
+        // English or fallback
+        preferredVoice = voices.find(voice => 
+          voice.lang.startsWith("en") || 
+          voice.name.includes("English")
+        );
+      }
       
       // Fallback to any available voice if no language match
       if (!preferredVoice) {
         preferredVoice = voices.find(voice => 
-          voice.name.includes('Male') || voice.name.includes('Google')
+          voice.name.includes("Google") || 
+          voice.name.includes("Male") || 
+          voice.name.includes("Female")
         );
       }
       
       if (preferredVoice) {
         utterance.voice = preferredVoice;
+        console.log(`Using voice: ${preferredVoice.name} for language: ${language}`);
+      } else {
+        console.log(`No specific voice found for ${language}, using default voice`);
       }
       
+      // Speak the text
       window.speechSynthesis.speak(utterance);
     }
   };

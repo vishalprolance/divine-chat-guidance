@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,34 +62,38 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				// Divine theme colors
+				divine: {
+					blue: '#1A237E',
+					gold: '#FFD700',
+					ochre: '#CD853F',
+					saffron: '#FF9933',
+					purple: '#673AB7',
+					leaf: '#4CAF50'
 				}
 			},
-			borderRadius: {
-				lg: 'var(--radius)',
-				md: 'calc(var(--radius) - 2px)',
-				sm: 'calc(var(--radius) - 4px)'
+			fontFamily: {
+				sanskrit: ['Noto Sans', 'sans-serif'],
 			},
 			keyframes: {
-				'accordion-down': {
-					from: {
-						height: '0'
-					},
-					to: {
-						height: 'var(--radix-accordion-content-height)'
-					}
+				'divine-fade-in': {
+					'0%': { opacity: '0', transform: 'translateY(10px)' },
+					'100%': { opacity: '1', transform: 'translateY(0)' }
 				},
-				'accordion-up': {
-					from: {
-						height: 'var(--radix-accordion-content-height)'
-					},
-					to: {
-						height: '0'
-					}
+				'divine-pulse': {
+					'0%, 100%': { opacity: '1' },
+					'50%': { opacity: '0.5' }
+				},
+				'divine-glow': {
+					'0%, 100%': { boxShadow: '0 0 5px rgba(255, 215, 0, 0.5)' },
+					'50%': { boxShadow: '0 0 20px rgba(255, 215, 0, 0.8)' }
 				}
 			},
 			animation: {
-				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'divine-fade-in': 'divine-fade-in 0.5s ease-out',
+				'divine-pulse': 'divine-pulse 2s ease-in-out infinite',
+				'divine-glow': 'divine-glow 2s ease-in-out infinite'
 			}
 		}
 	},

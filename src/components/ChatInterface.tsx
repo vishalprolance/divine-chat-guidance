@@ -3,7 +3,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Mic, Send, StopCircle, Globe } from 'lucide-react';
 import { Button } from './ui/button';
 import { queryGemini } from '../services/geminiService';
-import { Select } from './ui/select';
 
 const ChatInterface = () => {
   const [messages, setMessages] = useState<Array<{type: 'user' | 'bot', text: string}>>([]);
@@ -22,6 +21,14 @@ const ChatInterface = () => {
     { code: 'kn-IN', name: 'Kannada' },
     { code: 'sa-IN', name: 'Sanskrit' },
   ];
+
+  // Greeting messages in different languages
+  const greetingMessages = {
+    'en-US': 'Speak or type your question to receive guidance. Krishna\'s wisdom awaits your inquiry.',
+    'hi-IN': 'मार्गदर्शन प्राप्त करने के लिए अपना प्रश्न बोलें या टाइप करें। कृष्ण का ज्ञान आपके प्रश्न की प्रतीक्षा कर रहा है।',
+    'kn-IN': 'ಮಾರ್ಗದರ್ಶನ ಪಡೆಯಲು ನಿಮ್ಮ ಪ್ರಶ್ನೆಯನ್ನು ಮಾತನಾಡಿ ಅಥವಾ ಟೈಪ್ ಮಾಡಿ. ಕೃಷ್ಣನ ಜ್ಞಾನವು ನಿಮ್ಮ ಪ್ರಶ್ನೆಗಾಗಿ ಕಾಯುತ್ತಿದೆ.',
+    'sa-IN': 'मार्गदर्शनं प्राप्तुं प्रश्नं वदतु अथवा लिखतु। कृष्णस्य ज्ञानं भवतः प्रश्नस्य प्रतीक्षायां वर्तते।'
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -51,13 +58,13 @@ const ChatInterface = () => {
     setIsProcessing(true);
 
     try {
-      // Get response from Gemini LLM
-      const response = await queryGemini(text);
+      // Get response from Gemini LLM in the selected language
+      const response = await queryGemini(text, language);
       
       // Add bot response
       setMessages(prev => [...prev, { type: 'bot', text: response.text }]);
       
-      // Speak the response
+      // Speak the response in the selected language
       speakResponse(response.text);
     } catch (error) {
       console.error("Error processing message:", error);
@@ -79,7 +86,7 @@ const ChatInterface = () => {
       utterance.rate = 0.9; // Slightly slower for clarity
       utterance.pitch = 1;
       
-      // Try to match the language of the utterance to the current speech recognition language
+      // Set the language of the utterance to the currently selected language
       utterance.lang = language;
       
       // Get available voices
@@ -88,7 +95,7 @@ const ChatInterface = () => {
       // Try to find a voice that matches the current language
       let preferredVoice = voices.find(voice => 
         voice.lang.startsWith(language.split('-')[0]) || 
-        voice.name.includes('Google')
+        voice.name.includes(language.split('-')[0])
       );
       
       // Fallback to any available voice if no language match
@@ -107,14 +114,15 @@ const ChatInterface = () => {
   };
 
   const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setLanguage(e.target.value);
+    const newLanguage = e.target.value;
+    setLanguage(newLanguage);
     
     // If currently recording, restart with new language
     if (isRecording) {
       stopRecording();
       // Short delay to ensure previous recognition is stopped
       setTimeout(() => {
-        startRecording(e.target.value);
+        startRecording(newLanguage);
       }, 300);
     }
   };
@@ -183,13 +191,15 @@ const ChatInterface = () => {
     }
   };
 
+  // Get the greeting message for the current language
+  const greetingMessage = greetingMessages[language] || greetingMessages['en-US'];
+
   return (
     <div className="chat-container">
       <div className="message-container">
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-divine-blue/60 animate-divine-fade-in">
-            <p className="text-center mb-4">Speak or type your question to receive guidance</p>
-            <p className="text-sm text-center">Krishna's wisdom awaits your inquiry</p>
+            <p className="text-center mb-4">{greetingMessage}</p>
           </div>
         )}
         

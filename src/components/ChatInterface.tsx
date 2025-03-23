@@ -1,8 +1,10 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Mic, Send, StopCircle, Globe } from 'lucide-react';
+import { Mic, Send, StopCircle, Globe, Trash2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { queryGemini } from '../services/geminiService';
+import MessageList from './MessageList';
+import { useToast } from '@/hooks/use-toast';
 
 const ChatInterface = () => {
   const [messages, setMessages] = useState<Array<{type: 'user' | 'bot', text: string}>>([]);
@@ -11,8 +13,8 @@ const ChatInterface = () => {
   const [transcript, setTranscript] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [language, setLanguage] = useState('en-US'); // Default language
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const { toast } = useToast();
 
   // List of supported languages
   const languages = [
@@ -29,14 +31,6 @@ const ChatInterface = () => {
     'kn-IN': 'ಮಾರ್ಗದರ್ಶನ ಪಡೆಯಲು ನಿಮ್ಮ ಪ್ರಶ್ನೆಯನ್ನು ಮಾತನಾಡಿ ಅಥವಾ ಟೈಪ್ ಮಾಡಿ. ಕೃಷ್ಣನ ಜ್ಞಾನವು ನಿಮ್ಮ ಪ್ರಶ್ನೆಗಾಗಿ ಕಾಯುತ್ತಿದೆ.',
     'sa-IN': 'मार्गदर्शनं प्राप्तुं प्रश्नं वदतु अथवा लिखतु। कृष्णस्य ज्ञानं भवतः प्रश्नस्य प्रतीक्षायां वर्तते।'
   };
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
 
   // Pre-load voices when component mounts
   useEffect(() => {
@@ -68,6 +62,11 @@ const ChatInterface = () => {
       speakResponse(response.text);
     } catch (error) {
       console.error("Error processing message:", error);
+      toast({
+        title: "Error",
+        description: "I apologize, but I'm having trouble connecting to the wisdom right now. Please try again later.",
+        variant: "destructive"
+      });
       setMessages(prev => [...prev, { 
         type: 'bot', 
         text: "I apologize, but I'm having trouble connecting to the wisdom right now. Please try again later." 
@@ -127,6 +126,29 @@ const ChatInterface = () => {
     }
   };
 
+  const clearChat = () => {
+    // Stop any ongoing speech
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    
+    // Stop recording if active
+    if (isRecording) {
+      stopRecording();
+    }
+    
+    // Clear messages and reset state
+    setMessages([]);
+    setInput('');
+    setTranscript('');
+    setIsProcessing(false);
+    
+    toast({
+      title: "Chat Cleared",
+      description: "All messages have been cleared.",
+    });
+  };
+
   const toggleRecording = async () => {
     if (!isRecording) {
       startRecording(language);
@@ -162,6 +184,11 @@ const ChatInterface = () => {
       recognition.onerror = (event) => {
         console.error('Speech recognition error:', event.error);
         setIsRecording(false);
+        toast({
+          title: "Speech Recognition Error",
+          description: `Error: ${event.error}. Please try again.`,
+          variant: "destructive"
+        });
       };
       
       recognition.onend = () => {
@@ -175,7 +202,11 @@ const ChatInterface = () => {
       recognitionRef.current = recognition;
     } else {
       console.error('Speech recognition not supported in this browser');
-      alert('Speech recognition is not supported in this browser. Please try using Chrome, Edge, or Safari.');
+      toast({
+        title: "Browser Not Supported",
+        description: "Speech recognition is not supported in this browser. Please try using Chrome, Edge, or Safari.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -196,59 +227,46 @@ const ChatInterface = () => {
 
   return (
     <div className="chat-container">
-      <div className="message-container">
-        {messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full text-divine-blue/60 animate-divine-fade-in">
-            <p className="text-center mb-4">{greetingMessage}</p>
-          </div>
-        )}
-        
-        {messages.map((message, index) => (
-          <div
-            key={index}
-            className={`message ${message.type === 'user' ? 'user-message' : 'bot-message'}`}
-          >
-            {message.text}
-          </div>
-        ))}
-        
-        {isProcessing && (
-          <div className="message bot-message">
-            <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-divine-gold rounded-full animate-bounce"></div>
-              <div className="w-2 h-2 bg-divine-gold rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-              <div className="w-2 h-2 bg-divine-gold rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
-            </div>
-          </div>
-        )}
-        
-        {transcript && isRecording && (
-          <div className="message user-message opacity-70">
-            {transcript}
-          </div>
-        )}
-        
-        <div ref={messagesEndRef} />
-      </div>
+      <MessageList 
+        messages={messages}
+        isProcessing={isProcessing}
+        transcript={transcript}
+        isRecording={isRecording}
+        greetingMessage={greetingMessage}
+      />
       
       <div className="input-container">
-        <div className="flex mb-2">
-          <label htmlFor="language-select" className="flex items-center text-sm text-divine-blue/70 mr-2">
-            <Globe className="h-4 w-4 mr-1" />
-            Language:
-          </label>
-          <select
-            id="language-select"
-            value={language}
-            onChange={handleLanguageChange}
-            className="text-sm rounded border-divine-gold/30 bg-white/70 focus:ring-divine-gold/50 focus:border-divine-gold/50"
-          >
-            {languages.map((lang) => (
-              <option key={lang.code} value={lang.code}>
-                {lang.name}
-              </option>
-            ))}
-          </select>
+        <div className="flex justify-between mb-2">
+          <div className="flex items-center">
+            <label htmlFor="language-select" className="flex items-center text-sm text-divine-blue/70 dark:text-divine-gold/70 mr-2">
+              <Globe className="h-4 w-4 mr-1" />
+              Language:
+            </label>
+            <select
+              id="language-select"
+              value={language}
+              onChange={handleLanguageChange}
+              className="text-sm rounded border-divine-gold/30 bg-white/70 dark:bg-divine-blue/50 dark:text-white focus:ring-divine-gold/50 focus:border-divine-gold/50"
+            >
+              {languages.map((lang) => (
+                <option key={lang.code} value={lang.code}>
+                  {lang.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          {messages.length > 0 && (
+            <Button
+              onClick={clearChat}
+              variant="ghost"
+              size="sm"
+              className="text-sm flex items-center gap-1 text-divine-blue/70 dark:text-divine-gold/70 hover:bg-divine-blue/10 dark:hover:bg-divine-gold/20"
+            >
+              <Trash2 className="h-4 w-4" />
+              Clear Chat
+            </Button>
+          )}
         </div>
         
         <input
@@ -265,7 +283,7 @@ const ChatInterface = () => {
             onClick={toggleRecording}
             variant="ghost"
             size="icon"
-            className={`rounded-full ${isRecording ? 'animate-divine-pulse bg-red-500/20' : 'bg-divine-gold/20 hover:bg-divine-gold/30'}`}
+            className={`rounded-full ${isRecording ? 'animate-divine-pulse bg-red-500/20 dark:bg-red-500/40' : 'bg-divine-gold/20 dark:bg-divine-gold/30 hover:bg-divine-gold/30 dark:hover:bg-divine-gold/40'}`}
             disabled={isProcessing}
           >
             {isRecording ? <StopCircle className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
@@ -274,7 +292,7 @@ const ChatInterface = () => {
             onClick={() => handleSendMessage(input)}
             variant="ghost"
             size="icon"
-            className="rounded-full bg-divine-gold/20 hover:bg-divine-gold/30"
+            className="rounded-full bg-divine-gold/20 dark:bg-divine-gold/30 hover:bg-divine-gold/30 dark:hover:bg-divine-gold/40"
             disabled={!input.trim() || isRecording || isProcessing}
           >
             <Send className="h-5 w-5" />

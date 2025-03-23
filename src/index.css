@@ -28,6 +28,28 @@
     --ring: 240 5.9% 10%;
     --radius: 1rem;
   }
+
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 5.9% 10%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;
+  }
 }
 
 @layer base {
@@ -40,7 +62,7 @@
 }
 
 .chat-container {
-  @apply relative w-full max-w-2xl mx-auto h-[70vh] overflow-hidden rounded-lg bg-white/90 backdrop-blur-sm shadow-lg border border-divine-gold/20;
+  @apply relative w-full max-w-2xl mx-auto h-[70vh] overflow-hidden rounded-lg bg-white/90 dark:bg-divine-blue/10 backdrop-blur-sm shadow-lg border border-divine-gold/20 dark:border-divine-gold/30;
 }
 
 .message-container {
@@ -52,19 +74,19 @@
 }
 
 .user-message {
-  @apply bg-divine-blue/10 ml-12;
+  @apply bg-divine-blue/10 dark:bg-divine-blue/20 ml-12;
 }
 
 .bot-message {
-  @apply bg-divine-gold/10 mr-12;
+  @apply bg-divine-gold/10 dark:bg-divine-gold/20 mr-12;
 }
 
 .input-container {
-  @apply absolute bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-sm border-t border-divine-gold/20;
+  @apply absolute bottom-0 left-0 right-0 p-4 bg-white/80 dark:bg-divine-blue/20 backdrop-blur-sm border-t border-divine-gold/20 dark:border-divine-gold/30;
 }
 
 .divine-input {
-  @apply w-full p-3 pr-24 rounded-lg border border-divine-gold/30 focus:outline-none focus:ring-2 focus:ring-divine-gold/50 bg-white/50;
+  @apply w-full p-3 pr-24 rounded-lg border border-divine-gold/30 dark:border-divine-gold/50 focus:outline-none focus:ring-2 focus:ring-divine-gold/50 bg-white/50 dark:bg-divine-blue/30 dark:text-white;
 }
 
 /* Speech recognition animation */

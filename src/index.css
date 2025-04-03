@@ -62,15 +62,12 @@
   }
   body {
     @apply bg-background text-foreground font-sans;
-    min-height: 100vh; 
-    max-height: 100vh;
-    overflow: hidden;
+    overflow-x: hidden;
   }
   
   #root {
-    height: 100vh;
-    max-height: 100vh;
-    overflow: hidden;
+    min-height: 100vh;
+    width: 100%;
   }
 
   h1, h2, h3, h4, h5, h6 {

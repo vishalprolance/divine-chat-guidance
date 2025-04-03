@@ -71,8 +71,8 @@ const MessageList = ({
   };
 
   return (
-    <ScrollArea className="h-full w-full overflow-y-auto py-4" data-test-id="message-scroll-area">
-      <div className="px-4 space-y-4" ref={scrollAreaRef}>
+    <ScrollArea className="flex-1 w-full" data-test-id="message-scroll-area">
+      <div className="px-4 space-y-4 pb-6" ref={scrollAreaRef}>
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-gray-500 dark:text-gray-400 animate-divine-fade-in">
             <p className="text-center mb-4" style={{ fontSize: `${fontSize}px` }}>{greetingMessage}</p>

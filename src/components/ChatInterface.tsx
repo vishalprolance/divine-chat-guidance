@@ -21,6 +21,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const ChatInterface = () => {
   const [messages, setMessages] = useState<Array<{type: 'user' | 'bot', text: string}>>([]);
@@ -284,16 +285,18 @@ const ChatInterface = () => {
 
   return (
     <div className="chat-container">
-      <MessageList 
-        messages={messages}
-        isProcessing={isProcessing}
-        transcript={transcript}
-        isRecording={isRecording}
-        greetingMessage={greetingMessage}
-        fontSize={fontSize}
-        highlightedWordIndex={highlightedWordIndex}
-        currentSpeakingMessage={currentSpeakingMessage}
-      />
+      <ScrollArea className="message-container">
+        <MessageList 
+          messages={messages}
+          isProcessing={isProcessing}
+          transcript={transcript}
+          isRecording={isRecording}
+          greetingMessage={greetingMessage}
+          fontSize={fontSize}
+          highlightedWordIndex={highlightedWordIndex}
+          currentSpeakingMessage={currentSpeakingMessage}
+        />
+      </ScrollArea>
       
       <div className="input-container">
         <div className="flex flex-wrap justify-between mb-2 gap-2">
@@ -414,9 +417,7 @@ const ChatInterface = () => {
         .chat-container {
           position: relative;
           width: 100%;
-          max-width: 800px;
-          height: 70vh;
-          margin: 0 auto;
+          height: 100%;
           display: flex;
           flex-direction: column;
           border-radius: 0.75rem;
@@ -428,7 +429,7 @@ const ChatInterface = () => {
         
         .message-container {
           flex-grow: 1;
-          overflow-y: auto;
+          overflow-hidden;
           padding: 1.25rem;
           background-color: rgba(255, 255, 255, 0.6);
         }
@@ -511,17 +512,6 @@ const ChatInterface = () => {
         @keyframes divine-fade-in {
           from { opacity: 0; transform: translateY(20px); }
           to { opacity: 1; transform: translateY(0); }
-        }
-        
-        @media (max-width: 768px) {
-          .chat-container {
-            height: 85vh;
-            border-radius: 0.5rem;
-          }
-          
-          .message {
-            max-width: 90%;
-          }
         }
         `}
       </style>

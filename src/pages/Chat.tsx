@@ -1,16 +1,13 @@
-
 import React from 'react';
 import ChatInterface from '@/components/ChatInterface';
 import ThemeToggle from '@/components/ThemeToggle';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
-
 const Chat = () => {
-  return (
-    <div className="min-h-screen flex flex-col px-2 py-2 md:px-4 md:py-4 overflow-hidden bg-white dark:bg-black">
+  return <div className="min-h-screen flex flex-col px-2 py-2 md:px-4 md:py-4 overflow-hidden bg-white dark:bg-black">
       <div className="w-full max-w-3xl mx-auto h-[calc(100vh-16px)] flex flex-col overflow-hidden">
-        <div className="flex justify-between items-center mb-4 sticky top-0 z-30 bg-white dark:bg-black pb-2">
+        <div className="flex justify-between items-center mb-4 sticky top-0 z-30 bg-white dark:bg-black pb-2 rounded">
           <div className="flex items-center gap-2">
             <Link to="/">
               <Button variant="ghost" size="icon" className="rounded-full">
@@ -37,8 +34,6 @@ const Chat = () => {
           Inspired by the timeless wisdom of Bhagavad Gita and ancient texts
         </footer>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default Chat;

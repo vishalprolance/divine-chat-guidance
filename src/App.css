@@ -10,17 +10,18 @@
 
 html, body {
   height: 100%;
+  width: 100%;
   overflow: hidden;
   position: fixed;
-  width: 100%;
   overscroll-behavior: none;
+  touch-action: manipulation;
 }
 
 body {
   margin: 0;
   padding: 0;
-  touch-action: manipulation;
   -webkit-overflow-scrolling: touch;
+  font-family: 'Playfair Display', serif;
 }
 
 .logo {
@@ -77,4 +78,28 @@ body {
 
 .bg-purple-200, .dark .bg-purple-800 {
   animation: pulse-highlight 1s infinite;
+}
+
+/* Improve scrolling on mobile */
+.overflow-y-auto, .overflow-auto {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Sticky headers */
+.sticky {
+  position: sticky;
+  backdrop-filter: blur(10px);
+  z-index: 50;
+}
+
+/* Glass effect */
+.glass-effect {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.dark .glass-effect {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }

@@ -1,13 +1,16 @@
+
 import React from 'react';
 import ChatInterface from '@/components/ChatInterface';
 import ThemeToggle from '@/components/ThemeToggle';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
+
 const Chat = () => {
-  return <div className="min-h-screen flex flex-col px-2 py-2 md:px-4 md:py-4 overflow-hidden bg-white dark:bg-black">
+  return (
+    <div className="min-h-screen flex flex-col px-2 py-2 md:px-4 md:py-4 overflow-hidden bg-gradient-to-b from-white to-gray-50 dark:from-black dark:to-gray-950">
       <div className="w-full max-w-3xl mx-auto h-[calc(100vh-16px)] flex flex-col overflow-hidden">
-        <div className="flex justify-between items-center mb-4 sticky top-0 z-30 bg-white dark:bg-black pb-2 rounded">
+        <div className="flex justify-between items-center mb-4 sticky top-0 z-50 bg-white/90 dark:bg-black/90 backdrop-blur-md pb-2 pt-2 rounded-lg shadow-sm">
           <div className="flex items-center gap-2">
             <Link to="/">
               <Button variant="ghost" size="icon" className="rounded-full">
@@ -30,10 +33,15 @@ const Chat = () => {
           <ChatInterface />
         </div>
         
-        <footer className="mt-1 text-center text-xs text-gray-600 dark:text-gray-400 py-2 sticky bottom-0 z-10 bg-white dark:bg-black">
-          Inspired by the timeless wisdom of Bhagavad Gita and ancient texts
+        <footer className="mt-1 text-center text-xs text-gray-600 dark:text-gray-400 py-2 sticky bottom-0 z-10 bg-white/90 dark:bg-black/90 backdrop-blur-sm rounded-lg">
+          <p>Inspired by the timeless wisdom of Bhagavad Gita and ancient texts</p>
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-500">
+            Disclaimer: This app is an AI-powered guide and does not intend to hurt any religious beliefs or sentiments. All content is AI-generated.
+          </p>
         </footer>
       </div>
-    </div>;
+    </div>
+  );
 };
+
 export default Chat;

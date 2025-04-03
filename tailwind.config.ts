@@ -19,6 +19,11 @@ export default {
 			}
 		},
 		extend: {
+			fontFamily: {
+				sans: ['Poppins', 'sans-serif'],
+				serif: ['Playfair Display', 'serif'],
+				sanskrit: ['Noto Sans', 'sans-serif'],
+			},
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
@@ -63,18 +68,14 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				// Divine theme colors updated to black and white
 				divine: {
-					blue: '#000000',
+					blue: '#1A1A2E',
 					gold: '#FFD700',
-					ochre: '#111111',
-					saffron: '#222222',
-					purple: '#333333',
-					leaf: '#444444'
+					ochre: '#E6B31E',
+					saffron: '#FFAA33',
+					purple: '#6E59A5',
+					leaf: '#4CAF50'
 				}
-			},
-			fontFamily: {
-				sanskrit: ['Noto Sans', 'sans-serif'],
 			},
 			keyframes: {
 				'divine-fade-in': {

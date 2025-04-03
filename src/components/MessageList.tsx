@@ -59,7 +59,7 @@ const MessageList = ({
             <span 
               key={`word-${index}`} 
               className={index === highlightedWordIndex ? 
-                'bg-purple-200 dark:bg-purple-800 px-1 py-0.5 rounded-md transition-all duration-100 transform scale-105' : 
+                'highlighted-word' : 
                 ''}
             >
               {word}
@@ -155,6 +155,31 @@ const MessageList = ({
           background-color: rgba(255, 255, 255, 0.05);
           border-left: 2px solid rgba(255, 255, 255, 0.3);
           color: #ffffff;
+        }
+        
+        .highlighted-word {
+          background-color: #e9d8fd;
+          color: #4c1d95;
+          padding: 0 4px;
+          margin: 0 -1px;
+          border-radius: 4px;
+          display: inline-block;
+          animation: pulse 1s infinite;
+          font-weight: 500;
+          transition: all 0.2s ease;
+          box-shadow: 0 0 4px rgba(144, 97, 249, 0.5);
+        }
+        
+        .dark .highlighted-word {
+          background-color: #6d28d9;
+          color: #ffffff;
+          box-shadow: 0 0 8px rgba(192, 132, 252, 0.5);
+        }
+        
+        @keyframes pulse {
+          0% { transform: scale(1); }
+          50% { transform: scale(1.05); }
+          100% { transform: scale(1); }
         }
         
         @media (max-width: 640px) {

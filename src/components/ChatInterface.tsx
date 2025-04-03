@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Mic, 
@@ -411,21 +412,26 @@ const ChatInterface = () => {
       
       <style>
         {`
-        .message-container {
-          height: calc(100vh - 240px);
-          min-height: 300px;
-          overflow-y: auto;
-          padding: 1rem;
-          margin-bottom: 1rem;
-          background-color: rgba(255, 255, 255, 0.5);
-          border-radius: 0.5rem;
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        .chat-container {
+          position: relative;
+          width: 100%;
+          max-width: 800px;
+          height: 80vh;
+          margin: 0 auto;
+          display: flex;
+          flex-direction: column;
+          border-radius: 0.75rem;
+          background-color: rgba(255, 255, 255, 0.9);
+          border: 1px solid rgba(255, 215, 0, 0.3);
+          overflow: hidden;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
         }
         
-        @media (max-width: 768px) {
-          .message-container {
-            height: calc(100vh - 280px);
-          }
+        .message-container {
+          flex-grow: 1;
+          overflow-y: auto;
+          padding: 1.25rem;
+          background-color: rgba(255, 255, 255, 0.6);
         }
         
         .message {
@@ -459,25 +465,29 @@ const ChatInterface = () => {
         }
         
         .input-container {
-          position: relative;
           padding: 1rem;
-          background-color: rgba(255, 255, 255, 0.7);
-          border-radius: 0.5rem;
-          box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+          background-color: rgba(25, 25, 70, 0.95);
+          border-top: 1px solid rgba(255, 215, 0, 0.3);
+          color: rgba(255, 255, 255, 0.9);
         }
         
         .divine-input {
           width: 100%;
           padding: 0.75rem 4.5rem 0.75rem 1rem;
           border-radius: 9999px;
-          border: 2px solid rgba(255, 193, 7, 0.3);
-          background-color: rgba(255, 255, 255, 0.7);
+          border: 2px solid rgba(255, 193, 7, 0.5);
+          background-color: rgba(255, 255, 255, 0.1);
+          color: rgba(255, 255, 255, 0.9);
           transition: all 0.3s ease;
+        }
+        
+        .divine-input::placeholder {
+          color: rgba(255, 255, 255, 0.6);
         }
         
         .divine-input:focus {
           outline: none;
-          border-color: rgba(255, 193, 7, 0.7);
+          border-color: rgba(255, 193, 7, 0.8);
           box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.2);
         }
         
@@ -502,6 +512,17 @@ const ChatInterface = () => {
         @keyframes divine-fade-in {
           from { opacity: 0; transform: translateY(20px); }
           to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @media (max-width: 768px) {
+          .chat-container {
+            height: 85vh;
+            border-radius: 0.5rem;
+          }
+          
+          .message {
+            max-width: 90%;
+          }
         }
         `}
       </style>

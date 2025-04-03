@@ -72,41 +72,42 @@ const MessageList = ({
       className="message-container"
       ref={scrollAreaRef}
     >
-      {messages.length === 0 && (
+      {messages.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-full text-divine-blue/60 dark:text-divine-gold/60 animate-divine-fade-in">
           <p className="text-center mb-4" style={{ fontSize: `${fontSize}px` }}>{greetingMessage}</p>
         </div>
-      )}
-      
-      {messages.map((message, index) => (
-        <div
-          key={index}
-          className={`message ${message.type === 'user' ? 'user-message' : 'bot-message'}`}
-        >
-          {renderHighlightedText(
-            message.text, 
-            message.type === 'bot' && currentSpeakingMessage === message.text
+      ) : (
+        <div className="py-2 px-1">
+          {messages.map((message, index) => (
+            <div
+              key={index}
+              className={`message ${message.type === 'user' ? 'user-message' : 'bot-message'}`}
+            >
+              {renderHighlightedText(
+                message.text, 
+                message.type === 'bot' && currentSpeakingMessage === message.text
+              )}
+            </div>
+          ))}
+          
+          {isProcessing && (
+            <div className="message bot-message">
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-divine-gold rounded-full animate-bounce"></div>
+                <div className="w-2 h-2 bg-divine-gold rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                <div className="w-2 h-2 bg-divine-gold rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+              </div>
+            </div>
+          )}
+          
+          {transcript && isRecording && (
+            <div className="message user-message opacity-70">
+              <span style={{ fontSize: `${fontSize}px` }}>{transcript}</span>
+            </div>
           )}
         </div>
-      ))}
-      
-      {isProcessing && (
-        <div className="message bot-message">
-          <div className="flex items-center space-x-2">
-            <div className="w-2 h-2 bg-divine-gold rounded-full animate-bounce"></div>
-            <div className="w-2 h-2 bg-divine-gold rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-            <div className="w-2 h-2 bg-divine-gold rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
-          </div>
-        </div>
       )}
-      
-      {transcript && isRecording && (
-        <div className="message user-message opacity-70">
-          <span style={{ fontSize: `${fontSize}px` }}>{transcript}</span>
-        </div>
-      )}
-      
-      <div ref={messagesEndRef} />
+      <div ref={messagesEndRef} className="h-4" />
     </ScrollArea>
   );
 };

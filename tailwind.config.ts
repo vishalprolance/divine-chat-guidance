@@ -63,14 +63,14 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				// Divine theme colors
+				// Divine theme colors updated to black and gold
 				divine: {
-					blue: '#1A237E',
+					blue: '#000000',
 					gold: '#FFD700',
-					ochre: '#CD853F',
-					saffron: '#FF9933',
-					purple: '#673AB7',
-					leaf: '#4CAF50'
+					ochre: '#111111',
+					saffron: '#222222',
+					purple: '#333333',
+					leaf: '#444444'
 				}
 			},
 			fontFamily: {

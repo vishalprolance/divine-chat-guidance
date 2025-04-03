@@ -25,13 +25,13 @@ const ThemeToggle = () => {
       variant="ghost"
       size="icon"
       onClick={() => setIsDarkMode(!isDarkMode)}
-      className="rounded-full bg-white/20 hover:bg-white/30 dark:bg-divine-blue/30 dark:hover:bg-divine-blue/40 transition-colors shadow-md"
+      className="rounded-full bg-gray-200 hover:bg-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700 transition-colors shadow-md"
       aria-label="Toggle theme"
     >
       {isDarkMode ? (
-        <Sun className="h-5 w-5 text-divine-gold" />
+        <Sun className="h-5 w-5 text-white" />
       ) : (
-        <Moon className="h-5 w-5 text-white" />
+        <Moon className="h-5 w-5 text-black" />
       )}
     </Button>
   );

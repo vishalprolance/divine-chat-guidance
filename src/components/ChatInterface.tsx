@@ -1,13 +1,27 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Mic, Send, StopCircle, Globe, Trash2, VolumeX } from 'lucide-react';
+import { 
+  Mic, 
+  Send, 
+  StopCircle, 
+  Globe, 
+  Trash2, 
+  VolumeX,
+  Settings,
+  Volume2
+} from 'lucide-react';
 import { Button } from './ui/button';
 import { queryGemini } from '../services/geminiService';
 import MessageList from './MessageList';
 import { useToast } from '@/hooks/use-toast';
-
-// Create a new SpeechService to handle text-to-speech functionality
+import { useIsMobile } from '@/hooks/use-mobile';
+import FontSizeSettings from './FontSizeSettings';
 import SpeechService from '../services/speechService';
+import { 
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 const ChatInterface = () => {
   const [messages, setMessages] = useState<Array<{type: 'user' | 'bot', text: string}>>([]);
@@ -17,8 +31,15 @@ const ChatInterface = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [language, setLanguage] = useState('en-US'); // Default language
+  const [fontSize, setFontSize] = useState(16); // Default font size
+  const [highlightedWordIndex, setHighlightedWordIndex] = useState<number | null>(null);
+  const [currentSpeakingMessage, setCurrentSpeakingMessage] = useState<string | null>(null);
+  const [showsSettings, setShowSettings] = useState(false);
+  
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const speechServiceRef = useRef<SpeechService>(new SpeechService());
+  const temporaryTranscriptRef = useRef<string>('');
+  const isMobile = useIsMobile();
   const { toast } = useToast();
 
   // List of supported languages
@@ -55,16 +76,26 @@ const ChatInterface = () => {
     
     speechService.onSpeechEnd = () => {
       setIsSpeaking(false);
+      setHighlightedWordIndex(null);
+      setCurrentSpeakingMessage(null);
     };
     
     speechService.onSpeechError = (error) => {
       console.error("Speech error:", error);
       setIsSpeaking(false);
+      setHighlightedWordIndex(null);
+      setCurrentSpeakingMessage(null);
+      
       toast({
         title: "Speech Error",
         description: "There was an error with the text-to-speech. Please try again.",
         variant: "destructive"
       });
+    };
+    
+    speechService.onTextHighlight = (text, index) => {
+      setHighlightedWordIndex(index);
+      setCurrentSpeakingMessage(text);
     };
     
     // Clean up event listeners on component unmount
@@ -87,6 +118,12 @@ const ChatInterface = () => {
     }
   }, []);
 
+  // Handle changes in font size
+  useEffect(() => {
+    // Apply font size to message container
+    document.documentElement.style.setProperty('--message-font-size', `${fontSize}px`);
+  }, [fontSize]);
+
   const handleSendMessage = async (text: string) => {
     if (!text.trim()) return;
 
@@ -94,6 +131,7 @@ const ChatInterface = () => {
     setMessages(prev => [...prev, { type: 'user', text }]);
     setInput('');
     setTranscript('');
+    temporaryTranscriptRef.current = '';
     setIsProcessing(true);
 
     try {
@@ -150,6 +188,8 @@ const ChatInterface = () => {
     // Stop any ongoing speech
     speechServiceRef.current.stop();
     setIsSpeaking(false);
+    setHighlightedWordIndex(null);
+    setCurrentSpeakingMessage(null);
   };
 
   const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -161,7 +201,8 @@ const ChatInterface = () => {
     
     // If currently recording, restart with new language
     if (isRecording) {
-      stopRecording();
+      stopRecording(false); // Don't send transcript when changing language
+      
       // Short delay to ensure previous recognition is stopped
       setTimeout(() => {
         startRecording(newLanguage);
@@ -175,13 +216,14 @@ const ChatInterface = () => {
     
     // Stop recording if active
     if (isRecording) {
-      stopRecording();
+      stopRecording(false); // Don't send transcript when clearing chat
     }
     
     // Clear messages and reset state
     setMessages([]);
     setInput('');
     setTranscript('');
+    temporaryTranscriptRef.current = '';
     setIsProcessing(false);
     
     toast({
@@ -194,12 +236,13 @@ const ChatInterface = () => {
     if (!isRecording) {
       startRecording(language);
     } else {
-      stopRecording();
+      stopRecording(true); // Send transcript when stopping recording
     }
   };
 
   const startRecording = (selectedLanguage: string) => {
     setTranscript('');
+    temporaryTranscriptRef.current = '';
     
     if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -219,6 +262,11 @@ const ChatInterface = () => {
         for (let i = event.resultIndex; i < event.results.length; i++) {
           currentTranscript += event.results[i][0].transcript;
         }
+        
+        // Store in ref for when we stop recording
+        temporaryTranscriptRef.current = currentTranscript;
+        
+        // Update displayed transcript
         setTranscript(currentTranscript);
       };
       
@@ -233,10 +281,8 @@ const ChatInterface = () => {
       };
       
       recognition.onend = () => {
-        if (isRecording) {
-          // Only set to false if we manually stopped recording
-          setIsRecording(false);
-        }
+        // Only set to false if we manually stopped recording
+        setIsRecording(false);
       };
       
       recognition.start();
@@ -251,15 +297,18 @@ const ChatInterface = () => {
     }
   };
 
-  const stopRecording = () => {
+  const stopRecording = (sendTranscript: boolean = true) => {
     if (recognitionRef.current) {
       recognitionRef.current.stop();
       setIsRecording(false);
       
-      // If there's a transcript, send it as a message
-      if (transcript.trim()) {
-        handleSendMessage(transcript);
+      // If there's a transcript and we're supposed to send it, update the input field
+      if (temporaryTranscriptRef.current.trim() && sendTranscript) {
+        setInput(temporaryTranscriptRef.current.trim());
       }
+      
+      // Clear displayed transcript
+      setTranscript('');
     }
   };
 
@@ -274,10 +323,13 @@ const ChatInterface = () => {
         transcript={transcript}
         isRecording={isRecording}
         greetingMessage={greetingMessage}
+        fontSize={fontSize}
+        highlightedWordIndex={highlightedWordIndex}
+        currentSpeakingMessage={currentSpeakingMessage}
       />
       
       <div className="input-container">
-        <div className="flex justify-between mb-2">
+        <div className="flex flex-wrap justify-between mb-2 gap-2">
           <div className="flex items-center">
             <label htmlFor="language-select" className="flex items-center text-sm text-divine-blue/70 dark:text-divine-gold/70 mr-2">
               <Globe className="h-4 w-4 mr-1" />
@@ -298,7 +350,29 @@ const ChatInterface = () => {
           </div>
           
           <div className="flex items-center gap-2">
-            {isSpeaking && (
+            <Popover open={showsSettings} onOpenChange={setShowSettings}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-sm flex items-center gap-1 text-divine-blue/70 dark:text-divine-gold/70 hover:bg-divine-blue/10 dark:hover:bg-divine-gold/20"
+                >
+                  <Settings className="h-4 w-4" />
+                  Settings
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80">
+                <div className="space-y-4">
+                  <h4 className="font-medium leading-none mb-2">Display Settings</h4>
+                  <FontSizeSettings 
+                    fontSize={fontSize} 
+                    onFontSizeChange={setFontSize} 
+                  />
+                </div>
+              </PopoverContent>
+            </Popover>
+            
+            {isSpeaking ? (
               <Button
                 onClick={stopSpeaking}
                 variant="ghost"
@@ -308,6 +382,16 @@ const ChatInterface = () => {
               >
                 <VolumeX className="h-4 w-4" />
                 Stop Voice
+              </Button>
+            ) : messages.length > 0 && messages[messages.length - 1].type === 'bot' && (
+              <Button
+                onClick={() => speakResponse(messages[messages.length - 1].text)}
+                variant="ghost"
+                size="sm"
+                className="text-sm flex items-center gap-1 text-divine-blue/70 dark:text-divine-gold/70 hover:bg-divine-blue/10 dark:hover:bg-divine-gold/20"
+              >
+                <Volume2 className="h-4 w-4" />
+                Speak
               </Button>
             )}
             
@@ -325,36 +409,133 @@ const ChatInterface = () => {
           </div>
         </div>
         
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyPress={(e) => e.key === 'Enter' && handleSendMessage(input)}
-          placeholder="Ask your question..."
-          className="divine-input"
-          disabled={isRecording || isProcessing}
-        />
-        <div className="flex gap-2 absolute right-6 bottom-6">
-          <Button
-            onClick={toggleRecording}
-            variant="ghost"
-            size="icon"
-            className={`rounded-full ${isRecording ? 'animate-divine-pulse bg-red-500/20 dark:bg-red-500/40' : 'bg-divine-gold/20 dark:bg-divine-gold/30 hover:bg-divine-gold/30 dark:hover:bg-divine-gold/40'}`}
+        <div className="relative">
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage(input)}
+            placeholder="Ask your question..."
+            className="divine-input"
             disabled={isProcessing}
-          >
-            {isRecording ? <StopCircle className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
-          </Button>
-          <Button
-            onClick={() => handleSendMessage(input)}
-            variant="ghost"
-            size="icon"
-            className="rounded-full bg-divine-gold/20 dark:bg-divine-gold/30 hover:bg-divine-gold/30 dark:hover:bg-divine-gold/40"
-            disabled={!input.trim() || isRecording || isProcessing}
-          >
-            <Send className="h-5 w-5" />
-          </Button>
+          />
+          <div className="flex gap-2 absolute right-6 bottom-1/2 transform translate-y-1/2">
+            <Button
+              onClick={toggleRecording}
+              variant="ghost"
+              size="icon"
+              className={`rounded-full ${isRecording ? 'animate-divine-pulse bg-red-500/20 dark:bg-red-500/40' : 'bg-divine-gold/20 dark:bg-divine-gold/30 hover:bg-divine-gold/30 dark:hover:bg-divine-gold/40'}`}
+              disabled={isProcessing}
+            >
+              {isRecording ? <StopCircle className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+            </Button>
+            <Button
+              onClick={() => handleSendMessage(input)}
+              variant="ghost"
+              size="icon"
+              className="rounded-full bg-divine-gold/20 dark:bg-divine-gold/30 hover:bg-divine-gold/30 dark:hover:bg-divine-gold/40"
+              disabled={!input.trim() || isProcessing}
+            >
+              <Send className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
       </div>
+      
+      <style jsx global>{`
+        .message-container {
+          height: calc(100vh - 240px);
+          min-height: 300px;
+          overflow-y: auto;
+          padding: 1rem;
+          margin-bottom: 1rem;
+          background-color: rgba(255, 255, 255, 0.5);
+          border-radius: 0.5rem;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        @media (max-width: 768px) {
+          .message-container {
+            height: calc(100vh - 280px);
+          }
+        }
+        
+        .message {
+          margin-bottom: 1rem;
+          padding: 0.75rem 1rem;
+          border-radius: 0.5rem;
+          max-width: 80%;
+          animation: fadeIn 0.3s ease-in-out;
+          line-height: 1.5;
+          white-space: pre-wrap;
+          word-break: break-word;
+        }
+        
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .user-message {
+          background-color: rgba(63, 81, 181, 0.1);
+          border-left: 4px solid #3f51b5;
+          margin-left: auto;
+          border-top-right-radius: 0;
+        }
+        
+        .bot-message {
+          background-color: rgba(255, 193, 7, 0.1);
+          border-left: 4px solid #ffc107;
+          margin-right: auto;
+          border-top-left-radius: 0;
+        }
+        
+        .input-container {
+          position: relative;
+          padding: 1rem;
+          background-color: rgba(255, 255, 255, 0.7);
+          border-radius: 0.5rem;
+          box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+        }
+        
+        .divine-input {
+          width: 100%;
+          padding: 0.75rem 4.5rem 0.75rem 1rem;
+          border-radius: 9999px;
+          border: 2px solid rgba(255, 193, 7, 0.3);
+          background-color: rgba(255, 255, 255, 0.7);
+          transition: all 0.3s ease;
+        }
+        
+        .divine-input:focus {
+          outline: none;
+          border-color: rgba(255, 193, 7, 0.7);
+          box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.2);
+        }
+        
+        .divine-input:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
+        }
+        
+        .animate-divine-pulse {
+          animation: divine-pulse 1.5s infinite;
+        }
+        
+        @keyframes divine-pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.6; }
+        }
+        
+        .animate-divine-fade-in {
+          animation: divine-fade-in 1s ease-out;
+        }
+        
+        @keyframes divine-fade-in {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </div>
   );
 };

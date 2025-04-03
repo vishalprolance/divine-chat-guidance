@@ -1,6 +1,7 @@
 
 /**
- * Service to handle text-to-speech functionality across different languages
+ * Enhanced service to handle text-to-speech functionality across different languages
+ * with improved support for Indic languages like Kannada and Bengali
  */
 class SpeechService {
   private utterance: SpeechSynthesisUtterance | null = null;
@@ -9,11 +10,16 @@ class SpeechService {
   private isSpeaking = false;
   private pausedWordIndex = 0;
   private resumeTimeout: number | null = null;
+  private watchdogInterval: number | null = null;
+  private currentHighlightIndex = 0;
+  private textToHighlight: string = '';
+  private highlightTimeouts: number[] = [];
   
   // Event callbacks
   public onSpeechStart: (() => void) | null = null;
   public onSpeechEnd: (() => void) | null = null;
   public onSpeechError: ((error: any) => void) | null = null;
+  public onTextHighlight: ((text: string, index: number) => void) | null = null;
 
   constructor() {
     this.setupSpeechSynthesis();
@@ -33,28 +39,37 @@ class SpeechService {
   }
 
   /**
-   * Splits long text into smaller chunks to prevent speech synthesis from stopping
-   * This helps with all languages where speech tends to break
+   * Splits long text into smaller chunks for reliable speech synthesis
+   * With special handling for complex scripts like Kannada and Bengali
    */
   private splitTextIntoChunks(text: string, language: string): string[] {
-    // Use smaller chunks for languages that are more likely to have issues
-    let chunkSize = 100;
+    // Use smaller chunks for languages that need more processing
+    let chunkSize = 80; // Default smaller chunks for all languages
     
     // Different chunk sizes for different languages based on their complexity
     if (language === 'en-US') {
-      chunkSize = 200;
-    } else if (['hi-IN', 'mr-IN'].includes(language)) {
-      chunkSize = 120;
-    } else if (['kn-IN', 'sa-IN', 'bn-IN'].includes(language)) {
-      chunkSize = 80; // Smaller chunks for Kannada, Sanskrit and Bengali
+      chunkSize = 160;
+    } else if (language === 'hi-IN') {
+      chunkSize = 100;
+    } else if (['kn-IN', 'bn-IN'].includes(language)) {
+      chunkSize = 60; // Even smaller chunks for Kannada and Bengali
+    } else if (language === 'sa-IN') {
+      chunkSize = 70; // Sanskrit needs smaller chunks too
+    } else if (language === 'mr-IN') {
+      chunkSize = 90; // Marathi
     }
     
     const chunks: string[] = [];
     
-    // Try to split on sentence boundaries to make speech more natural
+    // Try to split on sentence boundaries
     // Include language-specific sentence endings
     const sentenceRegex = /[^.!?।॥\n]+[.!?।॥\n]+|\s+/g;
-    const sentences = text.match(sentenceRegex) || [text];
+    let sentences = text.match(sentenceRegex) || [text];
+    
+    // If we couldn't split by sentences, split by words as a fallback
+    if (sentences.length === 1 && text.length > chunkSize) {
+      sentences = text.split(/\s+/).map(word => word + ' ');
+    }
     
     let currentChunk = '';
     for (const sentence of sentences) {
@@ -72,79 +87,84 @@ class SpeechService {
       chunks.push(currentChunk.trim());
     }
     
-    // Log the number of chunks created
     console.log(`Split text into ${chunks.length} chunks for language ${language}`);
-    
     return chunks;
   }
 
   /**
-   * Find the best voice for the given language with improved fallback
+   * Find the best voice for the given language with enhanced matching for Indic languages
    */
   private findVoice(language: string): SpeechSynthesisVoice | null {
     if (!('speechSynthesis' in window)) return null;
     
     const voices = window.speechSynthesis.getVoices();
-    console.log(`Finding voice for language: ${language}`);
+    console.log(`Finding voice for language: ${language}, available voices:`, voices.length);
     
     // Primary match - exact language code
     let preferredVoice = voices.find(voice => voice.lang === language);
     
-    // Secondary match - language portion only
+    // Secondary match - language portion only (e.g., 'kn' for 'kn-IN')
     if (!preferredVoice) {
       const langCode = language.split('-')[0];
       preferredVoice = voices.find(voice => voice.lang.startsWith(langCode + '-'));
     }
     
-    // Language-specific fallbacks with enhanced matching
+    // Enhanced language-specific fallbacks with better matching logic
     if (!preferredVoice) {
       if (language === "hi-IN") {
+        // For Hindi - try Google Hindi first, then any Indian voice
         preferredVoice = voices.find(voice => 
-          voice.lang.includes("hi") || 
-          voice.name.toLowerCase().includes("hindi") || 
+          voice.name.toLowerCase().includes("google") && voice.lang.includes("hi") ||
+          voice.name.toLowerCase().includes("hindi") ||
           voice.name.toLowerCase().includes("indian")
         );
       } else if (language === "kn-IN") {
-        // For Kannada, try any Indian voice as they may handle Indic scripts better
+        // For Kannada - try any Google voice with Indian accent as fallback
         preferredVoice = voices.find(voice => 
-          voice.lang.includes("kn") || 
-          voice.name.toLowerCase().includes("kannada") || 
-          voice.lang.includes("IN") ||
+          voice.name.toLowerCase().includes("google") && voice.lang.includes("kn") ||
+          voice.name.toLowerCase().includes("kannada") ||
+          voice.name.toLowerCase().includes("google") && voice.lang.includes("in") ||
           voice.name.toLowerCase().includes("indian")
         );
+        // If still no voice, try any Google voice as they handle Unicode better
+        if (!preferredVoice) {
+          preferredVoice = voices.find(voice => voice.name.toLowerCase().includes("google"));
+        }
+      } else if (language === "bn-IN") {
+        // For Bengali - try any Google voice as fallback
+        preferredVoice = voices.find(voice => 
+          voice.name.toLowerCase().includes("google") && voice.lang.includes("bn") ||
+          voice.name.toLowerCase().includes("bengali") ||
+          voice.name.toLowerCase().includes("bangla") ||
+          voice.name.toLowerCase().includes("google") && voice.lang.includes("in") ||
+          voice.name.toLowerCase().includes("indian")
+        );
+        // If still no voice, try any Google voice
+        if (!preferredVoice) {
+          preferredVoice = voices.find(voice => voice.name.toLowerCase().includes("google"));
+        }
       } else if (language === "sa-IN") {
-        // For Sanskrit, first try Hindi as they share many phonological features
+        // For Sanskrit - try Hindi as fallback since they share script
         preferredVoice = voices.find(voice => 
           voice.lang.includes("sa") || 
           voice.name.toLowerCase().includes("sanskrit") || 
-          voice.lang.includes("hi-IN") || 
-          voice.name.toLowerCase().includes("hindi") || 
-          voice.lang.includes("IN") ||
+          voice.name.toLowerCase().includes("google") && voice.lang.includes("hi-IN") ||
+          voice.name.toLowerCase().includes("hindi") ||
           voice.name.toLowerCase().includes("indian")
         );
       } else if (language === "mr-IN") {
-        // For Marathi, try Hindi or any Indian voice
+        // For Marathi - try Hindi as they share script
         preferredVoice = voices.find(voice => 
           voice.lang.includes("mr") || 
           voice.name.toLowerCase().includes("marathi") || 
-          voice.lang.includes("hi-IN") || 
-          voice.name.toLowerCase().includes("hindi") || 
-          voice.lang.includes("IN") ||
-          voice.name.toLowerCase().includes("indian")
-        );
-      } else if (language === "bn-IN") {
-        // For Bengali, try any Indian voice
-        preferredVoice = voices.find(voice => 
-          voice.lang.includes("bn") || 
-          voice.name.toLowerCase().includes("bengali") || 
-          voice.name.toLowerCase().includes("bangla") || 
-          voice.lang.includes("IN") ||
+          voice.name.toLowerCase().includes("google") && voice.lang.includes("hi-IN") ||
+          voice.name.toLowerCase().includes("hindi") ||
           voice.name.toLowerCase().includes("indian")
         );
       }
     }
     
-    // If still no voice found, try any Google voice as they tend to have better support
+    // If still no voice, prioritize Google voices as they handle Unicode better
     if (!preferredVoice) {
       preferredVoice = voices.find(voice => 
         voice.name.includes("Google")
@@ -153,7 +173,8 @@ class SpeechService {
     
     // Last resort - just use any available voice
     if (!preferredVoice && voices.length > 0) {
-      preferredVoice = voices[0];
+      // Prefer Microsoft voices if available as they tend to be better quality
+      preferredVoice = voices.find(voice => voice.name.includes("Microsoft")) || voices[0];
     }
     
     if (preferredVoice) {
@@ -166,7 +187,43 @@ class SpeechService {
   }
 
   /**
-   * Speak text in specified language with improved chunking and error handling
+   * Set up text highlighting with proper timing
+   */
+  private setupTextHighlighting(text: string, rate: number): void {
+    if (!this.onTextHighlight) return;
+    
+    this.textToHighlight = text;
+    this.currentHighlightIndex = 0;
+    
+    // Clear any existing highlight timeouts
+    this.highlightTimeouts.forEach(timeout => window.clearTimeout(timeout));
+    this.highlightTimeouts = [];
+    
+    // Split text into words
+    const words = text.split(/\s+/);
+    
+    // Calculate average word length for this language
+    const avgWordsPerMinute = rate < 0.9 ? 150 : 180; // Slower for complex scripts
+    const msPerWord = 60000 / avgWordsPerMinute / rate;
+    
+    // Set up timeouts for each word
+    let currentTime = 300; // Start after a short delay
+    
+    words.forEach((word, index) => {
+      const timeout = window.setTimeout(() => {
+        if (this.isSpeaking) {
+          this.currentHighlightIndex = index;
+          this.onTextHighlight?.(this.textToHighlight, index);
+        }
+      }, currentTime);
+      
+      this.highlightTimeouts.push(timeout);
+      currentTime += msPerWord * (0.7 + 0.6 * (word.length / 5)); // Adjust timing based on word length
+    });
+  }
+
+  /**
+   * Speak text in specified language with advanced chunking for better reliability
    */
   public speak(text: string, language: string): void {
     if (!('speechSynthesis' in window)) {
@@ -178,7 +235,6 @@ class SpeechService {
     this.stop();
     
     // Split text into smaller chunks for better reliability
-    // Use language-specific chunking
     const textChunks = this.splitTextIntoChunks(text, language);
     this.chunkedUtterances = [];
     this.currentUtteranceIndex = 0;
@@ -188,33 +244,36 @@ class SpeechService {
     
     // Create utterances for each chunk
     for (const chunk of textChunks) {
+      if (!chunk.trim()) continue; // Skip empty chunks
+      
       const utterance = new SpeechSynthesisUtterance(chunk);
       utterance.lang = language;
       
-      // Adjust speech parameters for better clarity
-      // Different parameters for different languages
+      // Adjust speech parameters for better clarity based on language
+      let rate = 1.0;
       if (language === 'en-US') {
-        utterance.rate = 0.9;
+        rate = 0.9;
         utterance.pitch = 1.0;
       } else if (language === 'hi-IN') {
-        utterance.rate = 0.85;  // Slightly slower for Hindi
+        rate = 0.85;  // Slightly slower for Hindi
         utterance.pitch = 1.0;
       } else if (language === 'kn-IN') {
-        utterance.rate = 0.8;   // Even slower for Kannada
+        rate = 0.8;   // Slower for Kannada
         utterance.pitch = 1.0;
       } else if (language === 'sa-IN') {
-        utterance.rate = 0.75;  // Slowest for Sanskrit
+        rate = 0.75;  // Slowest for Sanskrit
         utterance.pitch = 1.0;
       } else if (language === 'mr-IN') {
-        utterance.rate = 0.85;  // Similar to Hindi for Marathi
+        rate = 0.85;  // Similar to Hindi for Marathi
         utterance.pitch = 1.0;
       } else if (language === 'bn-IN') {
-        utterance.rate = 0.85;  // For Bengali
+        rate = 0.8;   // Slower for Bengali 
         utterance.pitch = 1.0;
       } else {
-        utterance.rate = 0.9;   // Default
+        rate = 0.9;   // Default
         utterance.pitch = 1.0;
       }
+      utterance.rate = rate;
       
       // Set voice if we found one
       if (voice) {
@@ -229,16 +288,29 @@ class SpeechService {
       this.setupUtteranceEvents(this.chunkedUtterances[0]);
       this.isSpeaking = true;
       
+      // Set up text highlighting
+      if (textChunks.length > 0) {
+        this.setupTextHighlighting(text, this.chunkedUtterances[0].rate);
+      }
+      
       // Trigger speech start event
       if (this.onSpeechStart) {
         this.onSpeechStart();
       }
       
       // Start speaking the first chunk
-      window.speechSynthesis.speak(this.chunkedUtterances[0]);
-      
-      // Set a watchdog timer to ensure speech continues
-      this.setupWatchdog();
+      try {
+        window.speechSynthesis.speak(this.chunkedUtterances[0]);
+        console.log("Started speaking with voice:", this.chunkedUtterances[0].voice?.name);
+        
+        // Set up watchdog to ensure speech continues
+        this.setupWatchdog();
+      } catch (error) {
+        console.error("Error starting speech synthesis:", error);
+        if (this.onSpeechError) {
+          this.onSpeechError(error);
+        }
+      }
     }
   }
 
@@ -246,17 +318,40 @@ class SpeechService {
    * Setup watchdog to restart if speech synthesis stops unexpectedly
    */
   private setupWatchdog(): void {
-    // Check every 5 seconds if speech synthesis is paused unexpectedly
-    const watchdogInterval = setInterval(() => {
-      if (this.isSpeaking && window.speechSynthesis.paused) {
-        console.log("Detected unexpected speech pause, resuming...");
-        window.speechSynthesis.resume();
+    // Clear any existing watchdog
+    if (this.watchdogInterval !== null) {
+      window.clearInterval(this.watchdogInterval);
+    }
+    
+    // Check every 3 seconds if speech synthesis is paused unexpectedly
+    this.watchdogInterval = window.setInterval(() => {
+      if (this.isSpeaking) {
+        // If paused unexpectedly, try to resume
+        if (window.speechSynthesis.paused) {
+          console.log("Detected unexpected speech pause, resuming...");
+          window.speechSynthesis.resume();
+        }
+        
+        // If somehow stopped, try to restart current chunk
+        if (!window.speechSynthesis.speaking && !window.speechSynthesis.pending) {
+          console.log("Detected unexpected speech stop, attempting recovery...");
+          if (this.currentUtteranceIndex < this.chunkedUtterances.length) {
+            try {
+              // Try to continue with current chunk
+              window.speechSynthesis.speak(this.chunkedUtterances[this.currentUtteranceIndex]);
+            } catch (error) {
+              console.error("Error in watchdog recovery:", error);
+            }
+          }
+        }
+      } else {
+        // Clear watchdog if no longer speaking
+        if (this.watchdogInterval !== null) {
+          window.clearInterval(this.watchdogInterval);
+          this.watchdogInterval = null;
+        }
       }
-      
-      if (!this.isSpeaking) {
-        clearInterval(watchdogInterval);
-      }
-    }, 5000);
+    }, 3000);
   }
 
   /**
@@ -275,7 +370,16 @@ class SpeechService {
       // Brief delay before trying next chunk
       setTimeout(() => {
         if (this.isSpeaking) {
-          window.speechSynthesis.speak(nextUtterance);
+          try {
+            window.speechSynthesis.speak(nextUtterance);
+          } catch (retryError) {
+            console.error("Error in error recovery:", retryError);
+            // If retry failed, report the error and stop
+            this.stop();
+            if (this.onSpeechError) {
+              this.onSpeechError(retryError);
+            }
+          }
         }
       }, 500);
     } else {
@@ -312,12 +416,27 @@ class SpeechService {
         // Add a small pause between chunks for more natural speech
         setTimeout(() => {
           if (this.isSpeaking) {
-            window.speechSynthesis.speak(nextUtterance);
+            try {
+              window.speechSynthesis.speak(nextUtterance);
+            } catch (error) {
+              console.error("Error speaking next chunk:", error);
+              this.handleSpeechError(error, this.currentUtteranceIndex);
+            }
           }
         }, 300);
       } else {
         // All chunks finished
         this.isSpeaking = false;
+        
+        // Clear highlight timeouts
+        this.highlightTimeouts.forEach(timeout => window.clearTimeout(timeout));
+        this.highlightTimeouts = [];
+        
+        // Clear watchdog
+        if (this.watchdogInterval !== null) {
+          window.clearInterval(this.watchdogInterval);
+          this.watchdogInterval = null;
+        }
         
         // Trigger speech end event
         if (this.onSpeechEnd) {
@@ -346,6 +465,16 @@ class SpeechService {
       if (this.resumeTimeout !== null) {
         window.clearTimeout(this.resumeTimeout);
         this.resumeTimeout = null;
+      }
+      
+      // Clear highlight timeouts
+      this.highlightTimeouts.forEach(timeout => window.clearTimeout(timeout));
+      this.highlightTimeouts = [];
+      
+      // Clear watchdog
+      if (this.watchdogInterval !== null) {
+        window.clearInterval(this.watchdogInterval);
+        this.watchdogInterval = null;
       }
       
       // Trigger speech end event if needed
@@ -386,10 +515,20 @@ class SpeechService {
     this.onSpeechStart = null;
     this.onSpeechEnd = null;
     this.onSpeechError = null;
+    this.onTextHighlight = null;
     
+    // Clear all timeouts
     if (this.resumeTimeout !== null) {
       window.clearTimeout(this.resumeTimeout);
       this.resumeTimeout = null;
+    }
+    
+    this.highlightTimeouts.forEach(timeout => window.clearTimeout(timeout));
+    this.highlightTimeouts = [];
+    
+    if (this.watchdogInterval !== null) {
+      window.clearInterval(this.watchdogInterval);
+      this.watchdogInterval = null;
     }
   }
 }

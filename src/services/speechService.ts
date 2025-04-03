@@ -1,4 +1,3 @@
-
 /**
  * Enhanced service to handle text-to-speech functionality across different languages
  * with improved support for Indic languages like Kannada and Bengali
@@ -64,7 +63,9 @@ class SpeechService {
     // Try to split on sentence boundaries
     // Include language-specific sentence endings
     const sentenceRegex = /[^.!?।॥\n]+[.!?।॥\n]+|\s+/g;
-    let sentences = text.match(sentenceRegex) || [text];
+    // Fix: Ensure match returns a non-null value or use an empty array as fallback
+    const matches = text.match(sentenceRegex);
+    let sentences: string[] = matches ? Array.from(matches) : [text];
     
     // If we couldn't split by sentences, split by words as a fallback
     if (sentences.length === 1 && text.length > chunkSize) {

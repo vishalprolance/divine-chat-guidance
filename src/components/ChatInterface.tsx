@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Mic, 
@@ -42,7 +41,6 @@ const ChatInterface = () => {
   const isMobile = useIsMobile();
   const { toast } = useToast();
 
-  // List of supported languages
   const languages = [
     { code: 'en-US', name: 'English' },
     { code: 'hi-IN', name: 'Hindi' },
@@ -52,22 +50,18 @@ const ChatInterface = () => {
     { code: 'bn-IN', name: 'Bengali' },
   ];
 
-  // Greeting messages in different languages
   const greetingMessages = {
     'en-US': 'Speak or type your question to receive guidance. Krishna\'s wisdom awaits your inquiry.',
     'hi-IN': 'मार्गदर्शन प्राप्त करने के लिए अपना प्रश्न बोलें या टाइप करें। कृष्ण का ज्ञान आपके प्रश्न की प्रतीक्षा कर रहा है।',
     'kn-IN': 'ಮಾರ್ಗದರ್ಶನ ಪಡೆಯಲು ನಿಮ್ಮ ಪ್ರಶ್ನೆಯನ್ನು ಮಾತನಾಡಿ ಅಥವಾ ಟೈಪ್ ಮಾಡಿ. ಕೃಷ್ಣನ ಜ್ಞಾನವು ನಿಮ್ಮ ಪ್ರಶ್ನೆಗಾಗಿ ಕಾಯುತ್ತಿದೆ.',
     'sa-IN': 'मार्गदर्शनं प्राप्तुं प्रश्नं वदतु अथवा लिखतु। कृष्णस्य ज्ञानं भवतः प्रश्नस्य प्रतीक्षायां वर्तते।',
     'mr-IN': 'मार्गदर्शन मिळवण्यासाठी आपला प्रश्न बोला किंवा टाइप करा. कृष्णाचे ज्ञान आपल्या प्रश्नाची प्रतीक्षा करत आहे.',
-    'bn-IN': 'নির্দেশনা পেতে আপনার প্রশ্ন বলুন বা টাইপ করুন। কৃষ্ণের জ্ঞান আপনার প্রশ্নের অপেক্ষায় রয়েছে।'
+    'bn-IN': 'নির্দেশनা পেতে আপনার প্রশ্ন বলুন বা টাইপ করুন। কৃষ্ণের জ্ঞান আপনার প্রশ্নের অপেক্ষায় রয়েছে।'
   };
 
-  // Initialize speech service and set up event listeners
   useEffect(() => {
-    // Initialize the speech service
     speechServiceRef.current = new SpeechService();
     
-    // Set up speech service event listeners
     const speechService = speechServiceRef.current;
     
     speechService.onSpeechStart = () => {
@@ -98,36 +92,29 @@ const ChatInterface = () => {
       setCurrentSpeakingMessage(text);
     };
     
-    // Clean up event listeners on component unmount
     return () => {
       speechService.cleanup();
     };
   }, [toast]);
 
-  // Pre-load voices when component mounts
   useEffect(() => {
     if ('speechSynthesis' in window) {
-      // Force voices to load
       speechSynthesis.onvoiceschanged = () => {
         const voices = speechSynthesis.getVoices();
         console.log("Available voices loaded:", voices.map(v => `${v.name} (${v.lang})`));
       };
       
-      // Try to trigger voice loading
       speechSynthesis.getVoices();
     }
   }, []);
 
-  // Handle changes in font size
   useEffect(() => {
-    // Apply font size to message container
     document.documentElement.style.setProperty('--message-font-size', `${fontSize}px`);
   }, [fontSize]);
 
   const handleSendMessage = async (text: string) => {
     if (!text.trim()) return;
 
-    // Add user message
     setMessages(prev => [...prev, { type: 'user', text }]);
     setInput('');
     setTranscript('');
@@ -135,25 +122,21 @@ const ChatInterface = () => {
     setIsProcessing(true);
 
     try {
-      // Get response from Gemini LLM in the selected language
       const response = await queryGemini(text, language);
       
-      // Add bot response
       setMessages(prev => [...prev, { type: 'bot', text: response.text }]);
       
-      // Speak the response in the selected language
       speakResponse(response.text);
     } catch (error) {
       console.error("Error processing message:", error);
       
-      // Get error message in the selected language
       const errorMessages = {
         "en-US": "I apologize, but I'm having trouble connecting to the wisdom right now. Please try again later.",
         "hi-IN": "मैं क्षमा चाहता हूं, लेकिन मुझे इस समय ज्ञान से जुड़ने में समस्या हो रही है। कृपया बाद में पुनः प्रयास करें।",
         "kn-IN": "ನಾನು ಕ್ಷಮೆ ಕೇಳುತ್ತೇನೆ, ಆದರೆ ನನಗೆ ಈಗ ಜ್ಞಾನದೊಂದಿಗೆ ಸಂಪರ್ಕ ಸಾಧಿಸಲು ತೊಂದರೆಯಾಗುತ್ತಿದೆ. ದಯವಿಟ್ಟು ನಂತರ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
         "sa-IN": "अहं क्षमां प्रार्थये, परन्तु मम अधुना ज्ञानेन सह संयोजने समस्या अस्ति। कृपया पश्चात् पुनः प्रयत्नं कुर्वन्तु।",
         "mr-IN": "मी क्षमा मागतो, परंतु मला सध्या ज्ञानाशी जोडण्यात समस्या येत आहे. कृपया नंतर पुन्हा प्रयत्न करा.",
-        "bn-IN": "আমি ক্ষমা চাই, কিন্তু আমি এখন জ্ঞানের সাথে সংযোগ করতে সমস্যা হচ্ছে। অনুগ্রহ করে পরে আবার চেষ্টা করুন।"
+        "bn-IN": "আমি ক্ষমা চাই, কিন্তু আমি এখন জ্ঞানের সাথে সংযোগ করতে সমস্যা হচ্ছে। অনুগ্রহ কর��� পরে আবার চেষ্টা করুন।"
       };
       
       const errorMessage = errorMessages[language] || errorMessages["en-US"];
@@ -169,7 +152,6 @@ const ChatInterface = () => {
         text: errorMessage
       }]);
       
-      // Speak the error message in the selected language
       speakResponse(errorMessage);
     } finally {
       setIsProcessing(false);
@@ -177,15 +159,12 @@ const ChatInterface = () => {
   };
 
   const speakResponse = (text: string) => {
-    // Stop any ongoing speech first
     stopSpeaking();
     
-    // Use the speech service to speak the text in the selected language
     speechServiceRef.current.speak(text, language);
   };
 
   const stopSpeaking = () => {
-    // Stop any ongoing speech
     speechServiceRef.current.stop();
     setIsSpeaking(false);
     setHighlightedWordIndex(null);
@@ -196,14 +175,11 @@ const ChatInterface = () => {
     const newLanguage = e.target.value;
     setLanguage(newLanguage);
     
-    // Stop any ongoing speech
     stopSpeaking();
     
-    // If currently recording, restart with new language
     if (isRecording) {
-      stopRecording(false); // Don't send transcript when changing language
+      stopRecording(false);
       
-      // Short delay to ensure previous recognition is stopped
       setTimeout(() => {
         startRecording(newLanguage);
       }, 300);
@@ -211,15 +187,12 @@ const ChatInterface = () => {
   };
 
   const clearChat = () => {
-    // Stop any ongoing speech
     stopSpeaking();
     
-    // Stop recording if active
     if (isRecording) {
-      stopRecording(false); // Don't send transcript when clearing chat
+      stopRecording(false);
     }
     
-    // Clear messages and reset state
     setMessages([]);
     setInput('');
     setTranscript('');
@@ -236,7 +209,7 @@ const ChatInterface = () => {
     if (!isRecording) {
       startRecording(language);
     } else {
-      stopRecording(true); // Send transcript when stopping recording
+      stopRecording(true);
     }
   };
 
@@ -263,10 +236,8 @@ const ChatInterface = () => {
           currentTranscript += event.results[i][0].transcript;
         }
         
-        // Store in ref for when we stop recording
         temporaryTranscriptRef.current = currentTranscript;
         
-        // Update displayed transcript
         setTranscript(currentTranscript);
       };
       
@@ -281,7 +252,6 @@ const ChatInterface = () => {
       };
       
       recognition.onend = () => {
-        // Only set to false if we manually stopped recording
         setIsRecording(false);
       };
       
@@ -302,17 +272,14 @@ const ChatInterface = () => {
       recognitionRef.current.stop();
       setIsRecording(false);
       
-      // If there's a transcript and we're supposed to send it, update the input field
       if (temporaryTranscriptRef.current.trim() && sendTranscript) {
         setInput(temporaryTranscriptRef.current.trim());
       }
       
-      // Clear displayed transcript
       setTranscript('');
     }
   };
 
-  // Get the greeting message for the current language
   const greetingMessage = greetingMessages[language] || greetingMessages['en-US'];
 
   return (
@@ -442,7 +409,8 @@ const ChatInterface = () => {
         </div>
       </div>
       
-      <style jsx global>{`
+      <style>
+        {`
         .message-container {
           height: calc(100vh - 240px);
           min-height: 300px;
@@ -535,7 +503,8 @@ const ChatInterface = () => {
           from { opacity: 0; transform: translateY(20px); }
           to { opacity: 1; transform: translateY(0); }
         }
-      `}</style>
+        `}
+      </style>
     </div>
   );
 };

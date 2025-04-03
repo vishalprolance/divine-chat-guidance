@@ -1,10 +1,13 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Mic, Send, StopCircle, Globe, Trash2 } from 'lucide-react';
+import { Mic, Send, StopCircle, Globe, Trash2, VolumeX } from 'lucide-react';
 import { Button } from './ui/button';
 import { queryGemini } from '../services/geminiService';
 import MessageList from './MessageList';
 import { useToast } from '@/hooks/use-toast';
+
+// Create a new SpeechService to handle text-to-speech functionality
+import SpeechService from '../services/speechService';
 
 const ChatInterface = () => {
   const [messages, setMessages] = useState<Array<{type: 'user' | 'bot', text: string}>>([]);
@@ -12,8 +15,10 @@ const ChatInterface = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const [language, setLanguage] = useState('en-US'); // Default language
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const speechServiceRef = useRef<SpeechService>(new SpeechService());
   const { toast } = useToast();
 
   // List of supported languages
@@ -22,6 +27,8 @@ const ChatInterface = () => {
     { code: 'hi-IN', name: 'Hindi' },
     { code: 'kn-IN', name: 'Kannada' },
     { code: 'sa-IN', name: 'Sanskrit' },
+    { code: 'mr-IN', name: 'Marathi' },
+    { code: 'bn-IN', name: 'Bengali' },
   ];
 
   // Greeting messages in different languages
@@ -29,8 +36,42 @@ const ChatInterface = () => {
     'en-US': 'Speak or type your question to receive guidance. Krishna\'s wisdom awaits your inquiry.',
     'hi-IN': 'मार्गदर्शन प्राप्त करने के लिए अपना प्रश्न बोलें या टाइप करें। कृष्ण का ज्ञान आपके प्रश्न की प्रतीक्षा कर रहा है।',
     'kn-IN': 'ಮಾರ್ಗದರ್ಶನ ಪಡೆಯಲು ನಿಮ್ಮ ಪ್ರಶ್ನೆಯನ್ನು ಮಾತನಾಡಿ ಅಥವಾ ಟೈಪ್ ಮಾಡಿ. ಕೃಷ್ಣನ ಜ್ಞಾನವು ನಿಮ್ಮ ಪ್ರಶ್ನೆಗಾಗಿ ಕಾಯುತ್ತಿದೆ.',
-    'sa-IN': 'मार्गदर्शनं प्राप्तुं प्रश्नं वदतु अथवा लिखतु। कृष्णस्य ज्ञानं भवतः प्रश्नस्य प्रतीक्षायां वर्तते।'
+    'sa-IN': 'मार्गदर्शनं प्राप्तुं प्रश्नं वदतु अथवा लिखतु। कृष्णस्य ज्ञानं भवतः प्रश्नस्य प्रतीक्षायां वर्तते।',
+    'mr-IN': 'मार्गदर्शन मिळवण्यासाठी आपला प्रश्न बोला किंवा टाइप करा. कृष्णाचे ज्ञान आपल्या प्रश्नाची प्रतीक्षा करत आहे.',
+    'bn-IN': 'নির্দেশনা পেতে আপনার প্রশ্ন বলুন বা টাইপ করুন। কৃষ্ণের জ্ঞান আপনার প্রশ্নের অপেক্ষায় রয়েছে।'
   };
+
+  // Initialize speech service and set up event listeners
+  useEffect(() => {
+    // Initialize the speech service
+    speechServiceRef.current = new SpeechService();
+    
+    // Set up speech service event listeners
+    const speechService = speechServiceRef.current;
+    
+    speechService.onSpeechStart = () => {
+      setIsSpeaking(true);
+    };
+    
+    speechService.onSpeechEnd = () => {
+      setIsSpeaking(false);
+    };
+    
+    speechService.onSpeechError = (error) => {
+      console.error("Speech error:", error);
+      setIsSpeaking(false);
+      toast({
+        title: "Speech Error",
+        description: "There was an error with the text-to-speech. Please try again.",
+        variant: "destructive"
+      });
+    };
+    
+    // Clean up event listeners on component unmount
+    return () => {
+      speechService.cleanup();
+    };
+  }, [toast]);
 
   // Pre-load voices when component mounts
   useEffect(() => {
@@ -72,7 +113,9 @@ const ChatInterface = () => {
         "en-US": "I apologize, but I'm having trouble connecting to the wisdom right now. Please try again later.",
         "hi-IN": "मैं क्षमा चाहता हूं, लेकिन मुझे इस समय ज्ञान से जुड़ने में समस्या हो रही है। कृपया बाद में पुनः प्रयास करें।",
         "kn-IN": "ನಾನು ಕ್ಷಮೆ ಕೇಳುತ್ತೇನೆ, ಆದರೆ ನನಗೆ ಈಗ ಜ್ಞಾನದೊಂದಿಗೆ ಸಂಪರ್ಕ ಸಾಧಿಸಲು ತೊಂದರೆಯಾಗುತ್ತಿದೆ. ದಯವಿಟ್ಟು ನಂತರ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
-        "sa-IN": "अहं क्षमां प्रार्थये, परन्तु मम अधुना ज्ञानेन सह संयोजने समस्या अस्ति। कृपया पश्चात् पुनः प्रयत्नं कुर्वन्तु।"
+        "sa-IN": "अहं क्षमां प्रार्थये, परन्तु मम अधुना ज्ञानेन सह संयोजने समस्या अस्ति। कृपया पश्चात् पुनः प्रयत्नं कुर्वन्तु।",
+        "mr-IN": "मी क्षमा मागतो, परंतु मला सध्या ज्ञानाशी जोडण्यात समस्या येत आहे. कृपया नंतर पुन्हा प्रयत्न करा.",
+        "bn-IN": "আমি ক্ষমা চাই, কিন্তু আমি এখন জ্ঞানের সাথে সংযোগ করতে সমস্যা হচ্ছে। অনুগ্রহ করে পরে আবার চেষ্টা করুন।"
       };
       
       const errorMessage = errorMessages[language] || errorMessages["en-US"];
@@ -96,102 +139,25 @@ const ChatInterface = () => {
   };
 
   const speakResponse = (text: string) => {
-    if ('speechSynthesis' in window) {
-      // Stop any ongoing speech
-      window.speechSynthesis.cancel();
-      
-      const utterance = new SpeechSynthesisUtterance(text);
-      
-      // Optimize speech parameters for better clarity
-      utterance.rate = 0.9; // Slightly slower for clarity
-      utterance.pitch = 1;
-      
-      // Set the language of the utterance to the currently selected language
-      utterance.lang = language;
-      
-      // Get available voices
-      const voices = window.speechSynthesis.getVoices();
-      console.log(`Attempting to find voice for language: ${language}`);
-      
-      // Voice selection based on language with more detailed matching and fallbacks
-      let preferredVoice = null;
-      
-      if (language === "hi-IN") {
-        // Try to find Hindi voice with more specific matching
-        preferredVoice = voices.find(voice => 
-          voice.lang === "hi-IN" || 
-          voice.lang.startsWith("hi") ||
-          voice.name.toLowerCase().includes("hindi") ||
-          voice.name.toLowerCase().includes("indian")
-        );
-        console.log("Selected Hindi voice:", preferredVoice?.name || "None found, will use default");
-      } else if (language === "kn-IN") {
-        // Try to find Kannada voice with more specific matching
-        preferredVoice = voices.find(voice => 
-          voice.lang === "kn-IN" || 
-          voice.lang.startsWith("kn") ||
-          voice.name.toLowerCase().includes("kannada") ||
-          voice.name.toLowerCase().includes("indian")
-        );
-        console.log("Selected Kannada voice:", preferredVoice?.name || "None found, will use default");
-      } else if (language === "sa-IN") {
-        // Try to find Sanskrit or Indian voice with more specific matching
-        preferredVoice = voices.find(voice => 
-          voice.lang === "sa-IN" || 
-          voice.lang.startsWith("sa") ||
-          voice.name.toLowerCase().includes("sanskrit") ||
-          voice.name.toLowerCase().includes("hindi") ||  // Fallback to Hindi for Sanskrit
-          voice.name.toLowerCase().includes("indian")
-        );
-        console.log("Selected Sanskrit voice:", preferredVoice?.name || "None found, will use default");
-      } else {
-        // English or fallback with more specific matching
-        preferredVoice = voices.find(voice => 
-          voice.lang === "en-US" ||
-          voice.lang.startsWith("en") || 
-          voice.name.toLowerCase().includes("english")
-        );
-        console.log("Selected English voice:", preferredVoice?.name || "None found, will use default");
-      }
-      
-      // Fallback to any available voice if no language match
-      if (!preferredVoice) {
-        console.log("No matching voice found, trying fallbacks");
-        
-        // Try language-specific fallbacks
-        if (language === "hi-IN") {
-          preferredVoice = voices.find(voice => voice.lang.includes("in") || voice.name.includes("India"));
-        } else if (language === "kn-IN") {
-          preferredVoice = voices.find(voice => voice.lang.includes("in") || voice.name.includes("India"));
-        } else if (language === "sa-IN") {
-          preferredVoice = voices.find(voice => voice.lang.includes("in") || voice.name.includes("India"));
-        }
-        
-        // Last resort fallback
-        if (!preferredVoice) {
-          preferredVoice = voices.find(voice => 
-            voice.name.includes("Google") || 
-            voice.name.includes("Male") || 
-            voice.name.includes("Female")
-          );
-        }
-      }
-      
-      if (preferredVoice) {
-        utterance.voice = preferredVoice;
-        console.log(`Using voice: ${preferredVoice.name} for language: ${language}`);
-      } else {
-        console.log(`No specific voice found for ${language}, using default voice`);
-      }
-      
-      // Speak the text
-      window.speechSynthesis.speak(utterance);
-    }
+    // Stop any ongoing speech first
+    stopSpeaking();
+    
+    // Use the speech service to speak the text in the selected language
+    speechServiceRef.current.speak(text, language);
+  };
+
+  const stopSpeaking = () => {
+    // Stop any ongoing speech
+    speechServiceRef.current.stop();
+    setIsSpeaking(false);
   };
 
   const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newLanguage = e.target.value;
     setLanguage(newLanguage);
+    
+    // Stop any ongoing speech
+    stopSpeaking();
     
     // If currently recording, restart with new language
     if (isRecording) {
@@ -205,9 +171,7 @@ const ChatInterface = () => {
 
   const clearChat = () => {
     // Stop any ongoing speech
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-    }
+    stopSpeaking();
     
     // Stop recording if active
     if (isRecording) {
@@ -333,17 +297,32 @@ const ChatInterface = () => {
             </select>
           </div>
           
-          {messages.length > 0 && (
-            <Button
-              onClick={clearChat}
-              variant="ghost"
-              size="sm"
-              className="text-sm flex items-center gap-1 text-divine-blue/70 dark:text-divine-gold/70 hover:bg-divine-blue/10 dark:hover:bg-divine-gold/20"
-            >
-              <Trash2 className="h-4 w-4" />
-              Clear Chat
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {isSpeaking && (
+              <Button
+                onClick={stopSpeaking}
+                variant="ghost"
+                size="sm"
+                className="text-sm flex items-center gap-1 text-red-500 hover:bg-red-500/10"
+                title="Stop Speaking"
+              >
+                <VolumeX className="h-4 w-4" />
+                Stop Voice
+              </Button>
+            )}
+            
+            {messages.length > 0 && (
+              <Button
+                onClick={clearChat}
+                variant="ghost"
+                size="sm"
+                className="text-sm flex items-center gap-1 text-divine-blue/70 dark:text-divine-gold/70 hover:bg-divine-blue/10 dark:hover:bg-divine-gold/20"
+              >
+                <Trash2 className="h-4 w-4" />
+                Clear Chat
+              </Button>
+            )}
+          </div>
         </div>
         
         <input

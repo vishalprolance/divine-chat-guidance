@@ -35,10 +35,14 @@ const ChatInterface = () => {
   // Pre-load voices when component mounts
   useEffect(() => {
     if ('speechSynthesis' in window) {
-      // This ensures voices are loaded in Safari and other browsers
-      window.speechSynthesis.onvoiceschanged = () => {
-        window.speechSynthesis.getVoices();
+      // Force voices to load
+      speechSynthesis.onvoiceschanged = () => {
+        const voices = speechSynthesis.getVoices();
+        console.log("Available voices loaded:", voices.map(v => `${v.name} (${v.lang})`));
       };
+      
+      // Try to trigger voice loading
+      speechSynthesis.getVoices();
     }
   }, []);
 
@@ -107,47 +111,70 @@ const ChatInterface = () => {
       
       // Get available voices
       const voices = window.speechSynthesis.getVoices();
+      console.log(`Attempting to find voice for language: ${language}`);
       
-      // Voice selection based on language
+      // Voice selection based on language with more detailed matching and fallbacks
       let preferredVoice = null;
       
       if (language === "hi-IN") {
-        // Try to find a Hindi voice
+        // Try to find Hindi voice with more specific matching
         preferredVoice = voices.find(voice => 
           voice.lang === "hi-IN" || 
-          voice.name.includes("Hindi") ||
-          voice.name.includes("Indian")
+          voice.lang.startsWith("hi") ||
+          voice.name.toLowerCase().includes("hindi") ||
+          voice.name.toLowerCase().includes("indian")
         );
+        console.log("Selected Hindi voice:", preferredVoice?.name || "None found, will use default");
       } else if (language === "kn-IN") {
-        // Try to find a Kannada voice
+        // Try to find Kannada voice with more specific matching
         preferredVoice = voices.find(voice => 
           voice.lang === "kn-IN" || 
-          voice.name.includes("Kannada") ||
-          voice.name.includes("Indian")
+          voice.lang.startsWith("kn") ||
+          voice.name.toLowerCase().includes("kannada") ||
+          voice.name.toLowerCase().includes("indian")
         );
+        console.log("Selected Kannada voice:", preferredVoice?.name || "None found, will use default");
       } else if (language === "sa-IN") {
-        // Try to find a Sanskrit or Indian voice (Sanskrit is rare)
+        // Try to find Sanskrit or Indian voice with more specific matching
         preferredVoice = voices.find(voice => 
           voice.lang === "sa-IN" || 
-          voice.name.includes("Sanskrit") ||
-          voice.name.includes("Hindi") ||  // Fallback to Hindi for Sanskrit
-          voice.name.includes("Indian")
+          voice.lang.startsWith("sa") ||
+          voice.name.toLowerCase().includes("sanskrit") ||
+          voice.name.toLowerCase().includes("hindi") ||  // Fallback to Hindi for Sanskrit
+          voice.name.toLowerCase().includes("indian")
         );
+        console.log("Selected Sanskrit voice:", preferredVoice?.name || "None found, will use default");
       } else {
-        // English or fallback
+        // English or fallback with more specific matching
         preferredVoice = voices.find(voice => 
+          voice.lang === "en-US" ||
           voice.lang.startsWith("en") || 
-          voice.name.includes("English")
+          voice.name.toLowerCase().includes("english")
         );
+        console.log("Selected English voice:", preferredVoice?.name || "None found, will use default");
       }
       
       // Fallback to any available voice if no language match
       if (!preferredVoice) {
-        preferredVoice = voices.find(voice => 
-          voice.name.includes("Google") || 
-          voice.name.includes("Male") || 
-          voice.name.includes("Female")
-        );
+        console.log("No matching voice found, trying fallbacks");
+        
+        // Try language-specific fallbacks
+        if (language === "hi-IN") {
+          preferredVoice = voices.find(voice => voice.lang.includes("in") || voice.name.includes("India"));
+        } else if (language === "kn-IN") {
+          preferredVoice = voices.find(voice => voice.lang.includes("in") || voice.name.includes("India"));
+        } else if (language === "sa-IN") {
+          preferredVoice = voices.find(voice => voice.lang.includes("in") || voice.name.includes("India"));
+        }
+        
+        // Last resort fallback
+        if (!preferredVoice) {
+          preferredVoice = voices.find(voice => 
+            voice.name.includes("Google") || 
+            voice.name.includes("Male") || 
+            voice.name.includes("Female")
+          );
+        }
       }
       
       if (preferredVoice) {

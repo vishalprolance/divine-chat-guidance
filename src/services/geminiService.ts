@@ -16,33 +16,36 @@ export async function queryGemini(prompt: string, language: string = "en-US"): P
     // Select the appropriate model
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     
-    // Create a system prompt for Bhagavad Gita guidance with language instructions
+    // Create a system prompt for Bhagavad Gita guidance with stronger language instructions
     let systemPrompt = "You are a spiritual guide who provides wisdom from the Bhagavad Gita. ";
     
-    // Check the selected language and adjust the prompt accordingly
+    // Strengthen the language instruction to ensure response in the selected language
     if (language === "en-US") {
       systemPrompt += "Answer questions with relevant verses and explanations that reflect the teachings of Lord Krishna. " +
         "Keep responses concise and thoughtful in English.";
     } else if (language === "hi-IN") {
-      systemPrompt += "निम्नलिखित प्रश्न का उत्तर हिंदी में दें। भगवद गीता के संबंधित श्लोकों और व्याख्याओं के साथ उत्तर दें जो भगवान कृष्ण की शिक्षाओं को दर्शाते हैं। " +
-        "उत्तर संक्षिप्त और विचारपूर्ण रखें।";
+      systemPrompt += "आपको हिंदी में ही उत्तर देना है, चाहे प्रश्न किसी भी भाषा में हो। " +
+        "भगवद गीता के संबंधित श्लोकों और व्याख्याओं के साथ उत्तर दें जो भगवान कृष्ण की शिक्षाओं को दर्शाते हैं। " +
+        "उत्तर संक्षिप्त और विचारपूर्ण रखें। अंग्रेजी का प्रयोग न करें, केवल हिंदी का प्रयोग करें।";
     } else if (language === "kn-IN") {
-      systemPrompt += "ಈ ಕೆಳಗಿನ ಪ್ರಶ್ನೆಗೆ ಕನ್ನಡದಲ್ಲಿ ಉತ್ತರಿಸಿ. ಭಗವದ್ಗೀತೆಯ ಸಂಬಂಧಿತ ಶ್ಲೋಕಗಳು ಮತ್ತು ವಿವರಣೆಗಳೊಂದಿಗೆ ಉತ್ತರಿಸಿ ಅವುಗಳು ಭಗವಾನ್ ಕೃಷ್ಣನ ಬೋಧನೆಗಳನ್ನು ಪ್ರತಿಬಿಂಬಿಸುತ್ತವೆ. " +
-        "ಉತ್ತರಗಳನ್ನು ಸಂಕ್ಷಿಪ್ತ ಮತ್ತು ಆಲೋಚನಾತ್ಮಕವಾಗಿರಿಸಿ.";
+      systemPrompt += "ನೀವು ಕನ್ನಡದಲ್ಲಿ ಮಾತ್ರ ಉತ್ತರಿಸಬೇಕು, ಪ್ರಶ್ನೆ ಯಾವುದೇ ಭಾಷೆಯಲ್ಲಿದ್ದರೂ. " +
+        "ಭಗವದ್ಗೀತೆಯ ಸಂಬಂಧಿತ ಶ್ಲೋಕಗಳು ಮತ್ತು ವಿವರಣೆಗಳೊಂದಿಗೆ ಉತ್ತರಿಸಿ ಅವುಗಳು ಭಗವಾನ್ ಕೃಷ್ಣನ ಬೋಧನೆಗಳನ್ನು ಪ್ರತಿಬಿಂಬಿಸುತ್ತವೆ. " +
+        "ಉತ್ತರಗಳನ್ನು ಸಂಕ್ಷಿಪ್ತ ಮತ್ತು ಆಲೋಚನಾತ್ಮಕವಾಗಿರಿಸಿ. ಇಂಗ್ಲಿಷ್ ಬಳಸಬೇಡಿ, ಕೇವಲ ಕನ್ನಡ ಮಾತ್ರ ಬಳಸಿ.";
     } else if (language === "sa-IN") {
-      systemPrompt += "अधोलिखितप्रश्नस्य उत्तरं संस्कृतभाषायां प्रयच्छतु। भगवद्गीतायाः संबद्धश्लोकैः व्याख्यानैः च उत्तरं ददातु, यानि श्रीकृष्णस्य उपदेशान् प्रतिबिम्बयन्ति। " +
-        "उत्तरं संक्षिप्तं विचारपूर्णं च रक्षतु।";
+      systemPrompt += "भवता संस्कृतभाषायामेव उत्तरं दातव्यम्, प्रश्नः कस्यामपि भाषायां स्यात्। " +
+        "भगवद्गीतायाः संबद्धश्लोकैः व्याख्यानैः च उत्तरं ददातु, यानि श्रीकृष्णस्य उपदेशान् प्रतिबिम्बयन्ति। " +
+        "उत्तरं संक्षिप्तं विचारपूर्णं च रक्षतु। आङ्ग्लभाषां मा प्रयुञ्जीत, केवलं संस्कृतभाषामेव प्रयुञ्जीत।";
     }
     
-    // Configure the chat
+    // Configure the chat with improved parameters for language handling
     const generationConfig = {
-      temperature: 0.7,
+      temperature: 0.8,    // Slightly increased to allow for more natural language responses
       topP: 0.95,
       topK: 40,
       maxOutputTokens: 800,
     };
     
-    // Create a chat session
+    // Create a chat session with stronger language instructions
     const chat = model.startChat({
       generationConfig,
       history: [
@@ -57,8 +60,20 @@ export async function queryGemini(prompt: string, language: string = "en-US"): P
       ],
     });
     
+    // Modify the prompt to ensure response in the chosen language
+    let modifiedPrompt = prompt;
+    
+    // Add language instruction to the user's prompt
+    if (language === "hi-IN") {
+      modifiedPrompt += " कृपया हिंदी में उत्तर दें।";
+    } else if (language === "kn-IN") {
+      modifiedPrompt += " ದಯವಿಟ್ಟು ಕನ್ನಡದಲ್ಲಿ ಉತ್ತರಿಸಿ.";
+    } else if (language === "sa-IN") {
+      modifiedPrompt += " कृपया संस्कृते उत्तरं ददातु।";
+    }
+    
     // Send user's question and get response
-    const result = await chat.sendMessage(prompt);
+    const result = await chat.sendMessage(modifiedPrompt);
     const response = result.response;
     const text = response.text();
     

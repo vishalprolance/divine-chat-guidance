@@ -59,7 +59,7 @@ const MessageList = ({
             <span 
               key={`word-${index}`} 
               className={index === highlightedWordIndex ? 
-                'bg-purple-200 dark:bg-purple-800 px-1 py-0.5 rounded transition-colors duration-150' : 
+                'bg-purple-200 dark:bg-purple-800 px-1 py-0.5 rounded-md transition-all duration-100 transform scale-105' : 
                 ''}
             >
               {word}

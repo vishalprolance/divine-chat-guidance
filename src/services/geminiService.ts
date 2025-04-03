@@ -26,28 +26,28 @@ export async function queryGemini(prompt: string, language: string = "en-US"): P
     } else if (language === "hi-IN") {
       systemPrompt += "आपको हिंदी में ही उत्तर देना है, चाहे प्रश्न किसी भी भाषा में हो। " +
         "भगवद गीता के संबंधित श्लोकों और व्याख्याओं के साथ उत्तर दें जो भगवान कृष्ण की शिक्षाओं को दर्शाते हैं। " +
-        "उत्तर संक्षिप्त और विचारपूर्ण रखें। अंग्रेजी का प्रयोग न करें, केवल हिंदी का प्रयोग करें।";
+        "उत्तर संक्षिप्त और विचारपूर्ण रखें। अंग्रेजी का प्रयोग बिलकुल न करें, केवल शुद्ध हिंदी का प्रयोग करें।";
     } else if (language === "kn-IN") {
       systemPrompt += "ನೀವು ಕನ್ನಡದಲ್ಲಿ ಮಾತ್ರ ಉತ್ತರಿಸಬೇಕು, ಪ್ರಶ್ನೆ ಯಾವುದೇ ಭಾಷೆಯಲ್ಲಿದ್ದರೂ. " +
         "ಭಗವದ್ಗೀತೆಯ ಸಂಬಂಧಿತ ಶ್ಲೋಕಗಳು ಮತ್ತು ವಿವರಣೆಗಳೊಂದಿಗೆ ಉತ್ತರಿಸಿ ಅವುಗಳು ಭಗವಾನ್ ಕೃಷ್ಣನ ಬೋಧನೆಗಳನ್ನು ಪ್ರತಿಬಿಂಬಿಸುತ್ತವೆ. " +
-        "ಉತ್ತರಗಳನ್ನು ಸಂಕ್ಷಿಪ್ತ ಮತ್ತು ಆಲೋಚನಾತ್ಮಕವಾಗಿರಿಸಿ. ಇಂಗ್ಲಿಷ್ ಬಳಸಬೇಡಿ, ಕೇವಲ ಕನ್ನಡ ಮಾತ್ರ ಬಳಸಿ.";
+        "ಉತ್ತರಗಳನ್ನು ಸಂಕ್ಷಿಪ್ತ ಮತ್ತು ಆಲೋಚನಾತ್ಮಕವಾಗಿರಿಸಿ. ಇಂಗ್ಲಿಷ್ ಬಳಸಬೇಡಿ, ಕೇವಲ ಶುದ್ಧ ಕನ್ನಡ ಮಾತ್ರ ಬಳಸಿ.";
     } else if (language === "sa-IN") {
       systemPrompt += "भवता संस्कृतभाषायामेव उत्तरं दातव्यम्, प्रश्नः कस्यामपि भाषायां स्यात्। " +
         "भगवद्गीतायाः संबद्धश्लोकैः व्याख्यानैः च उत्तरं ददातु, यानि श्रीकृष्णस्य उपदेशान् प्रतिबिम्बयन्ति। " +
-        "उत्तरं संक्षिप्तं विचारपूर्णं च रक्षतु। आङ्ग्लभाषां मा प्रयुञ्जीत, केवलं संस्कृतभाषामेव प्रयुञ्जीत।";
+        "उत्तरं संक्षिप्तं विचारपूर्णं च रक्षतु। आङ्ग्लभाषां मा प्रयुञ्जीत, केवलं शुद्धं संस्कृतभाषामेव प्रयुञ्जीत।";
     } else if (language === "mr-IN") {
-      systemPrompt += "आपण मराठीमध्ये उत्तर द्यावे, प्रश्न कोणत्याही भाषेत असला तरी. " +
+      systemPrompt += "आपण मराठीमध्येच उत्तर द्यावे, प्रश्न कोणत्याही भाषेत असला तरी. " +
         "भगवद्गीतेतील संबंधित श्लोक आणि स्पष्टीकरणांसह उत्तर द्या जे भगवान कृष्णाच्या शिकवणीचे प्रतिबिंब दर्शवतात. " +
-        "उत्तरे संक्षिप्त आणि विचारपूर्ण ठेवा. इंग्रजीचा वापर करू नका, फक्त मराठीचा वापर करा.";
+        "उत्तरे संक्षिप्त आणि विचारपूर्ण ठेवा. इंग्रजीचा वापर अजिबात करू नका, फक्त शुद्ध मराठीचा वापर करा.";
     } else if (language === "bn-IN") {
-      systemPrompt += "আপনি বাংলায় উত্তর দিন, প্রশ্ন যে কোনও ভাষায় হোক না কেন। " +
+      systemPrompt += "আপনি শুধুমাত্র বাংলায় উত্তর দিন, প্রশ্ন যে কোনও ভাষায় হোক না কেন। " +
         "ভগবদ্গীতার প্রাসঙ্গিক শ্লোক এবং ব্যাখ্যা সহ উত্তর দিন যা ভগবান কৃষ্ণের শিক্ষাকে প্রতিফলিত করে। " +
-        "উত্তরগুলি সংক্ষিপ্ত এবং চিন্তাশীল রাখুন। ইংরেজি ব্যবহার করবেন না, শুধুমাত্র বাংলা ব্যবহার করুন।";
+        "উত্তরগুলি সংক্ষিপ্ত এবং চিন্তাশীল রাখুন। ইংরেজি ব্যবহার একদম করবেন না, শুধুমাত্র শুদ্ধ বাংলা ব্যবহার করুন।";
     }
     
     // Configure the chat with improved parameters for language handling
     const generationConfig = {
-      temperature: 0.8,    // Slightly increased to allow for more natural language responses
+      temperature: 0.7,    // Slightly reduced for more consistent language use
       topP: 0.95,
       topK: 40,
       maxOutputTokens: 800,
@@ -65,23 +65,23 @@ export async function queryGemini(prompt: string, language: string = "en-US"): P
           role: "model",
           parts: [{ text: getWelcomeMessage(language) }],
         },
+        {
+          role: "user",
+          parts: [{ text: getLanguageInstructionPrompt(language) }],
+        },
+        {
+          role: "model",
+          parts: [{ text: getLanguageConfirmationMessage(language) }],
+        },
       ],
     });
     
-    // Modify the prompt to ensure response in the chosen language
+    // Add language instruction to the user's prompt
     let modifiedPrompt = prompt;
     
-    // Add language instruction to the user's prompt
-    if (language === "hi-IN") {
-      modifiedPrompt += " कृपया हिंदी में उत्तर दें।";
-    } else if (language === "kn-IN") {
-      modifiedPrompt += " ದಯವಿಟ್ಟು ಕನ್ನಡದಲ್ಲಿ ಉತ್ತರಿಸಿ.";
-    } else if (language === "sa-IN") {
-      modifiedPrompt += " कृपया संस्कृते उत्तरं ददातु।";
-    } else if (language === "mr-IN") {
-      modifiedPrompt += " कृपया मराठीमध्ये उत्तर द्या.";
-    } else if (language === "bn-IN") {
-      modifiedPrompt += " অনুগ্রহ করে বাংলায় উত্তর দিন।";
+    if (language !== "en-US") {
+      // Add a stronger language instruction at the end
+      modifiedPrompt += " " + getLanguageSuffix(language);
     }
     
     // Send user's question and get response
@@ -107,6 +107,48 @@ export async function queryGemini(prompt: string, language: string = "en-US"): P
       text: errorMessages[language] || errorMessages["en-US"]
     };
   }
+}
+
+// Add stronger language instructions as a separate message
+function getLanguageInstructionPrompt(language: string): string {
+  const instructions = {
+    "hi-IN": "मुझे केवल हिंदी में जवाब दें, अंग्रेजी का प्रयोग न करें।",
+    "kn-IN": "ದಯವಿಟ್ಟು ನನಗೆ ಕನ್ನಡದಲ್ಲಿ ಮಾತ್ರ ಉತ್ತರಿಸಿ, ಇಂಗ್ಲಿಷ್ ಬಳಸಬೇಡಿ.",
+    "sa-IN": "कृपया संस्कृतभाषायामेव उत्तरं ददातु, आङ्ग्लभाषां मा प्रयुञ्जीत।",
+    "mr-IN": "कृपया मला फक्त मराठीतच उत्तर द्या, इंग्रजीचा वापर करू नका.",
+    "bn-IN": "অনুগ্রহ করে আমাকে শুধুমাত্র বাংলায় উত্তর দিন, ইংরেজি ব্যবহার করবেন না।",
+    "en-US": "Please answer me in English only."
+  };
+  
+  return instructions[language] || instructions["en-US"];
+}
+
+// Add confirmation of language understanding 
+function getLanguageConfirmationMessage(language: string): string {
+  const confirmations = {
+    "hi-IN": "हां, मैं आपको केवल हिंदी में उत्तर दूंगा।",
+    "kn-IN": "ಹೌದು, ನಾನು ನಿಮಗೆ ಕನ್ನಡದಲ್ಲಿ ಮಾತ್ರ ಉತ್ತರಿಸುತ್ತೇನೆ.",
+    "sa-IN": "आम्, अहं भवन्तं संस्कृतभाषायामेव उत्तरं दास्यामि।",
+    "mr-IN": "होय, मी तुम्हाला फक्त मराठीतच उत्तर देईन.",
+    "bn-IN": "হ্যাঁ, আমি আপনাকে শুধুমাত্র বাংলায় উত্তর দেব।",
+    "en-US": "Yes, I will answer you in English only."
+  };
+  
+  return confirmations[language] || confirmations["en-US"];
+}
+
+// Add language suffix to add to the end of each user prompt
+function getLanguageSuffix(language: string): string {
+  const suffixes = {
+    "hi-IN": "कृपया अपना उत्तर केवल हिंदी में दें। अंग्रेजी का उपयोग न करें।",
+    "kn-IN": "ದಯವಿಟ್ಟು ನಿಮ್ಮ ಉತ್ತರವನ್ನು ಕನ್ನಡದಲ್ಲಿ ಮಾತ್ರ ನೀಡಿ. ಇಂಗ್ಲಿಷ್ ಬಳಸಬೇಡಿ.",
+    "sa-IN": "कृपया उत्तरं संस्कृतभाषायां एव ददातु। आङ्ग्लभाषां मा प्रयुञ्जीत।",
+    "mr-IN": "कृपया आपले उत्तर फक्त मराठीत द्या. इंग्रजीचा वापर करू नका.",
+    "bn-IN": "অনুগ্রহ করে আপনার উত্তর শুধুমাত্র বাংলায় দিন। ইংরেজি ব্যবহার করবেন না।",
+    "en-US": "Please provide your answer in English only."
+  };
+  
+  return suffixes[language] || suffixes["en-US"];
 }
 
 function getLanguageDisplayName(languageCode: string): string {

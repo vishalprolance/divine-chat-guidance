@@ -68,16 +68,13 @@ const MessageList = ({
   };
 
   return (
-    <ScrollArea 
-      className="message-container"
-      ref={scrollAreaRef}
-    >
+    <ScrollArea className="flex-grow overflow-y-auto py-4 px-4">
       {messages.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-full text-divine-blue/60 dark:text-divine-gold/60 animate-divine-fade-in">
           <p className="text-center mb-4" style={{ fontSize: `${fontSize}px` }}>{greetingMessage}</p>
         </div>
       ) : (
-        <div className="py-2 px-1">
+        <div className="space-y-4">
           {messages.map((message, index) => (
             <div
               key={index}

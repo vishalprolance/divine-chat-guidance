@@ -27,6 +27,8 @@
     --input: 240 5.9% 90%;
     --ring: 240 5.9% 10%;
     --radius: 1rem;
+    --divine-gold: 45 100% 51%;
+    --divine-blue: 240 50% 20%;
   }
 
   .dark {
@@ -102,4 +104,29 @@
 
 .sound-wave-bar:nth-child(5) {
   animation-delay: 0.8s;
+}
+
+/* Divine UI theme */
+.divine-gold {
+  color: hsl(var(--divine-gold));
+}
+
+.divine-blue {
+  color: hsl(var(--divine-blue));
+}
+
+.bg-divine-gold {
+  background-color: hsl(var(--divine-gold));
+}
+
+.bg-divine-blue {
+  background-color: hsl(var(--divine-blue));
+}
+
+.border-divine-gold {
+  border-color: hsl(var(--divine-gold));
+}
+
+.border-divine-blue {
+  border-color: hsl(var(--divine-blue));
 }

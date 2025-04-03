@@ -1,3 +1,4 @@
+
 /**
  * Enhanced service to handle text-to-speech functionality across different languages
  * with improved support for Indic languages like Kannada and Bengali
@@ -63,9 +64,9 @@ class SpeechService {
     // Try to split on sentence boundaries
     // Include language-specific sentence endings
     const sentenceRegex = /[^.!?।॥\n]+[.!?।॥\n]+|\s+/g;
-    // Fix: Ensure match returns a non-null value or use an empty array as fallback
-    const matches = text.match(sentenceRegex);
-    let sentences: string[] = matches ? Array.from(matches) : [text];
+    // Ensure match returns a non-null value or use an empty array as fallback
+    const matches = text.match(sentenceRegex) || [];
+    let sentences: string[] = matches.length > 0 ? Array.from(matches) : [text];
     
     // If we couldn't split by sentences, split by words as a fallback
     if (sentences.length === 1 && text.length > chunkSize) {
@@ -530,6 +531,233 @@ class SpeechService {
     if (this.watchdogInterval !== null) {
       window.clearInterval(this.watchdogInterval);
       this.watchdogInterval = null;
+    }
+  }
+
+  /**
+   * Set up text highlighting with proper timing
+   */
+  private setupTextHighlighting(text: string, rate: number): void {
+    if (!this.onTextHighlight) return;
+    
+    this.textToHighlight = text;
+    this.currentHighlightIndex = 0;
+    
+    // Clear any existing highlight timeouts
+    this.highlightTimeouts.forEach(timeout => window.clearTimeout(timeout));
+    this.highlightTimeouts = [];
+    
+    // Split text into words
+    const words = text.split(/\s+/);
+    
+    // Calculate average word length for this language
+    const avgWordsPerMinute = rate < 0.9 ? 150 : 180; // Slower for complex scripts
+    const msPerWord = 60000 / avgWordsPerMinute / rate;
+    
+    // Set up timeouts for each word
+    let currentTime = 300; // Start after a short delay
+    
+    words.forEach((word, index) => {
+      const timeout = window.setTimeout(() => {
+        if (this.isSpeaking) {
+          this.currentHighlightIndex = index;
+          this.onTextHighlight?.(this.textToHighlight, index);
+        }
+      }, currentTime);
+      
+      this.highlightTimeouts.push(timeout);
+      currentTime += msPerWord * (0.7 + 0.6 * (word.length / 5)); // Adjust timing based on word length
+    });
+  }
+
+  /**
+   * Setup watchdog to restart if speech synthesis stops unexpectedly
+   */
+  private setupWatchdog(): void {
+    // Clear any existing watchdog
+    if (this.watchdogInterval !== null) {
+      window.clearInterval(this.watchdogInterval);
+    }
+    
+    // Check every 3 seconds if speech synthesis is paused unexpectedly
+    this.watchdogInterval = window.setInterval(() => {
+      if (this.isSpeaking) {
+        // If paused unexpectedly, try to resume
+        if (window.speechSynthesis.paused) {
+          console.log("Detected unexpected speech pause, resuming...");
+          window.speechSynthesis.resume();
+        }
+        
+        // If somehow stopped, try to restart current chunk
+        if (!window.speechSynthesis.speaking && !window.speechSynthesis.pending) {
+          console.log("Detected unexpected speech stop, attempting recovery...");
+          if (this.currentUtteranceIndex < this.chunkedUtterances.length) {
+            try {
+              // Try to continue with current chunk
+              window.speechSynthesis.speak(this.chunkedUtterances[this.currentUtteranceIndex]);
+            } catch (error) {
+              console.error("Error in watchdog recovery:", error);
+            }
+          }
+        }
+      } else {
+        // Clear watchdog if no longer speaking
+        if (this.watchdogInterval !== null) {
+          window.clearInterval(this.watchdogInterval);
+          this.watchdogInterval = null;
+        }
+      }
+    }, 3000);
+  }
+
+  /**
+   * Handle speech synthesis errors with retry logic
+   */
+  private handleSpeechError(error: any, utteranceIndex: number): void {
+    console.error("Speech synthesis error:", error);
+    
+    // If this is not the last utterance and speaking is still active, try to continue
+    if (this.isSpeaking && utteranceIndex < this.chunkedUtterances.length - 1) {
+      console.log(`Attempting to continue with next chunk after error`);
+      this.currentUtteranceIndex = utteranceIndex + 1;
+      const nextUtterance = this.chunkedUtterances[this.currentUtteranceIndex];
+      this.setupUtteranceEvents(nextUtterance);
+      
+      // Brief delay before trying next chunk
+      setTimeout(() => {
+        if (this.isSpeaking) {
+          try {
+            window.speechSynthesis.speak(nextUtterance);
+          } catch (retryError) {
+            console.error("Error in error recovery:", retryError);
+            // If retry failed, report the error and stop
+            this.stop();
+            if (this.onSpeechError) {
+              this.onSpeechError(retryError);
+            }
+          }
+        }
+      }, 500);
+    } else {
+      // Cannot continue, report error
+      this.isSpeaking = false;
+      
+      // Trigger error event
+      if (this.onSpeechError) {
+        this.onSpeechError(error);
+      }
+    }
+  }
+
+  /**
+   * Setup event handlers for an utterance with improved error handling
+   */
+  private setupUtteranceEvents(utterance: SpeechSynthesisUtterance): void {
+    const currentIndex = this.currentUtteranceIndex;
+    
+    // When a chunk finishes, start the next one
+    utterance.onend = () => {
+      // Only proceed if we're still in speaking mode and this is the current utterance
+      if (!this.isSpeaking || currentIndex !== this.currentUtteranceIndex) {
+        return;
+      }
+      
+      this.currentUtteranceIndex++;
+      
+      // If there are more chunks, speak the next one
+      if (this.currentUtteranceIndex < this.chunkedUtterances.length) {
+        const nextUtterance = this.chunkedUtterances[this.currentUtteranceIndex];
+        this.setupUtteranceEvents(nextUtterance);
+        
+        // Add a small pause between chunks for more natural speech
+        setTimeout(() => {
+          if (this.isSpeaking) {
+            try {
+              window.speechSynthesis.speak(nextUtterance);
+            } catch (error) {
+              console.error("Error speaking next chunk:", error);
+              this.handleSpeechError(error, this.currentUtteranceIndex);
+            }
+          }
+        }, 300);
+      } else {
+        // All chunks finished
+        this.isSpeaking = false;
+        
+        // Clear highlight timeouts
+        this.highlightTimeouts.forEach(timeout => window.clearTimeout(timeout));
+        this.highlightTimeouts = [];
+        
+        // Clear watchdog
+        if (this.watchdogInterval !== null) {
+          window.clearInterval(this.watchdogInterval);
+          this.watchdogInterval = null;
+        }
+        
+        // Trigger speech end event
+        if (this.onSpeechEnd) {
+          this.onSpeechEnd();
+        }
+      }
+    };
+    
+    // Handle errors with improved recovery logic
+    utterance.onerror = (event) => {
+      this.handleSpeechError(event, currentIndex);
+    };
+  }
+
+  /**
+   * Stop speaking with cleanup
+   */
+  public stop(): void {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      this.isSpeaking = false;
+      this.chunkedUtterances = [];
+      this.currentUtteranceIndex = 0;
+      
+      // Clear any pending timeouts
+      if (this.resumeTimeout !== null) {
+        window.clearTimeout(this.resumeTimeout);
+        this.resumeTimeout = null;
+      }
+      
+      // Clear highlight timeouts
+      this.highlightTimeouts.forEach(timeout => window.clearTimeout(timeout));
+      this.highlightTimeouts = [];
+      
+      // Clear watchdog
+      if (this.watchdogInterval !== null) {
+        window.clearInterval(this.watchdogInterval);
+        this.watchdogInterval = null;
+      }
+      
+      // Trigger speech end event if needed
+      if (this.onSpeechEnd) {
+        this.onSpeechEnd();
+      }
+    }
+  }
+
+  /**
+   * Pause speaking
+   */
+  public pause(): void {
+    if ('speechSynthesis' in window && this.isSpeaking) {
+      window.speechSynthesis.pause();
+    }
+  }
+
+  /**
+   * Resume speaking with improved error recovery
+   */
+  public resume(): void {
+    if ('speechSynthesis' in window && this.isSpeaking) {
+      window.speechSynthesis.resume();
+      
+      // Setup watchdog to ensure speech continues
+      this.setupWatchdog();
     }
   }
 }

@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Mic, 
@@ -210,7 +209,7 @@ const ChatInterface = () => {
     if (!isRecording) {
       startRecording(language);
     } else {
-      stopRecording(true);
+      stopRecording(false);
     }
   };
 
@@ -239,7 +238,7 @@ const ChatInterface = () => {
         
         temporaryTranscriptRef.current = currentTranscript;
         
-        setTranscript(currentTranscript);
+        setInput(currentTranscript);
       };
       
       recognition.onerror = (event) => {
@@ -268,7 +267,7 @@ const ChatInterface = () => {
     }
   };
 
-  const stopRecording = (sendTranscript: boolean = true) => {
+  const stopRecording = (sendTranscript: boolean = false) => {
     if (recognitionRef.current) {
       recognitionRef.current.stop();
       setIsRecording(false);
@@ -416,7 +415,7 @@ const ChatInterface = () => {
           position: relative;
           width: 100%;
           max-width: 800px;
-          height: 80vh;
+          height: 70vh;
           margin: 0 auto;
           display: flex;
           flex-direction: column;

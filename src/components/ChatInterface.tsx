@@ -57,7 +57,7 @@ const ChatInterface = () => {
     'kn-IN': 'ಮಾರ್ಗದರ್ಶನ ಪಡೆಯಲು ನಿಮ್ಮ ಪ್ರಶ್ನೆಯನ್ನು ಮಾತನಾಡಿ ಅಥವಾ ಟೈಪ್ ಮಾಡಿ. ಕೃಷ್ಣನ ಜ್ಞಾನವು ನಿಮ್ಮ ಪ್ರಶ್ನೆಗಾಗಿ ಕಾಯುತ್ತಿದೆ.',
     'sa-IN': 'मार्गदर्शनं प्राप्तुं प्रश्नं वदतु अथवा लिखतु। कृष्णस्य ज्ञानं भवतः प्रश्नस्य प्रतीक्षायां वर्तते।',
     'mr-IN': 'मार्गदर्शन मिळवण्यासाठी आपला प्रश्न बोला किंवा टाइप करा. कृष्णाचे ज्ञान आपल्या प्रश्नाची प्रतीक्षा करत आहे.',
-    'bn-IN': 'নির্দেশनা পেতে আপনার প্রশ্ন বলুন বা টাইপ করুন। কৃষ্ণের জ্ঞান আপনার প্রশ্নের অপেক্ষায় রয়েছে।'
+    'bn-IN': 'নির্দেশনা পেতে আপনার প্রশ্ন বলুন বা টাইপ করুন। কৃষ্ণের জ্ঞান আপনার প্রশ্নের অপেক্ষায় রয়েছে।'
   };
 
   useEffect(() => {
@@ -137,7 +137,7 @@ const ChatInterface = () => {
         "kn-IN": "ನಾನು ಕ್ಷಮೆ ಕೇಳುತ್ತೇನೆ, ಆದರೆ ನನಗೆ ಈಗ ಜ್ಞಾನದೊಂದಿಗೆ ಸಂಪರ್ಕ ಸಾಧಿಸಲು ತೊಂದರೆಯಾಗುತ್ತಿದೆ. ದಯವಿಟ್ಟು ನಂತರ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
         "sa-IN": "अहं क्षमां प्रार्थये, परन्तु मम अधुना ज्ञानेन सह संयोजने समस्या अस्ति। कृपया पश्चात् पुनः प्रयत्नं कुर्वन्तु।",
         "mr-IN": "मी क्षमा मागतो, परंतु मला सध्या ज्ञानाशी जोडण्यात समस्या येत आहे. कृपया नंतर पुन्हा प्रयत्न करा.",
-        "bn-IN": "আমি ক্ষমা চাই, কিন্তু আমি এখন জ্ঞানের সাথে সংযোগ করতে সমস্যা হচ্ছে। অনুগ্রহ কর��� পরে আবার চেষ্টা করুন।"
+        "bn-IN": "আমি ক্ষমা চাই, কিন্তু আমি এখন জ্ঞানের সাথে সংযোগ করতে সমস্যা হচ্ছে। অনুগ্রহ করে পরে আবার চেষ্টা করুন।"
       };
       
       const errorMessage = errorMessages[language] || errorMessages["en-US"];
@@ -284,8 +284,8 @@ const ChatInterface = () => {
   const greetingMessage = greetingMessages[language] || greetingMessages['en-US'];
 
   return (
-    <div className="chat-container">
-      <ScrollArea className="message-container">
+    <div className="chat-container h-full flex flex-col">
+      <ScrollArea className="message-container flex-grow overflow-hidden">
         <MessageList 
           messages={messages}
           isProcessing={isProcessing}
@@ -298,10 +298,10 @@ const ChatInterface = () => {
         />
       </ScrollArea>
       
-      <div className="input-container">
+      <div className="input-container mt-auto">
         <div className="flex flex-wrap justify-between mb-2 gap-2">
           <div className="flex items-center">
-            <label htmlFor="language-select" className="flex items-center text-sm text-divine-blue/70 dark:text-divine-gold/70 mr-2">
+            <label htmlFor="language-select" className="flex items-center text-sm text-white/90 dark:text-divine-gold/90 mr-2">
               <Globe className="h-4 w-4 mr-1" />
               Language:
             </label>
@@ -309,7 +309,7 @@ const ChatInterface = () => {
               id="language-select"
               value={language}
               onChange={handleLanguageChange}
-              className="text-sm rounded border-divine-gold/30 bg-white/70 dark:bg-divine-blue/50 dark:text-white focus:ring-divine-gold/50 focus:border-divine-gold/50"
+              className="text-sm rounded border-divine-gold/30 bg-white/20 dark:bg-divine-blue/30 text-white dark:text-divine-gold focus:ring-divine-gold/50 focus:border-divine-gold/50"
             >
               {languages.map((lang) => (
                 <option key={lang.code} value={lang.code}>
@@ -325,15 +325,15 @@ const ChatInterface = () => {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-sm flex items-center gap-1 text-divine-blue/70 dark:text-divine-gold/70 hover:bg-divine-blue/10 dark:hover:bg-divine-gold/20"
+                  className="text-sm flex items-center gap-1 text-white/90 dark:text-divine-gold/90 hover:bg-white/10 dark:hover:bg-divine-gold/20"
                 >
                   <Settings className="h-4 w-4" />
                   Settings
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-80">
+              <PopoverContent className="w-80 bg-white/90 dark:bg-divine-blue/90 border border-divine-gold/20">
                 <div className="space-y-4">
-                  <h4 className="font-medium leading-none mb-2">Display Settings</h4>
+                  <h4 className="font-medium leading-none mb-2 text-divine-blue dark:text-divine-gold">Display Settings</h4>
                   <FontSizeSettings 
                     fontSize={fontSize} 
                     onFontSizeChange={setFontSize} 
@@ -358,7 +358,7 @@ const ChatInterface = () => {
                 onClick={() => speakResponse(messages[messages.length - 1].text)}
                 variant="ghost"
                 size="sm"
-                className="text-sm flex items-center gap-1 text-divine-blue/70 dark:text-divine-gold/70 hover:bg-divine-blue/10 dark:hover:bg-divine-gold/20"
+                className="text-sm flex items-center gap-1 text-white/90 dark:text-divine-gold/90 hover:bg-white/10 dark:hover:bg-divine-gold/20"
               >
                 <Volume2 className="h-4 w-4" />
                 Speak
@@ -370,7 +370,7 @@ const ChatInterface = () => {
                 onClick={clearChat}
                 variant="ghost"
                 size="sm"
-                className="text-sm flex items-center gap-1 text-divine-blue/70 dark:text-divine-gold/70 hover:bg-divine-blue/10 dark:hover:bg-divine-gold/20"
+                className="text-sm flex items-center gap-1 text-white/90 dark:text-divine-gold/90 hover:bg-white/10 dark:hover:bg-divine-gold/20"
               >
                 <Trash2 className="h-4 w-4" />
                 Clear Chat
@@ -397,7 +397,7 @@ const ChatInterface = () => {
               className={`rounded-full ${isRecording ? 'animate-divine-pulse bg-red-500/20 dark:bg-red-500/40' : 'bg-divine-gold/20 dark:bg-divine-gold/30 hover:bg-divine-gold/30 dark:hover:bg-divine-gold/40'}`}
               disabled={isProcessing}
             >
-              {isRecording ? <StopCircle className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+              {isRecording ? <StopCircle className="h-5 w-5 text-red-500" /> : <Mic className="h-5 w-5 text-white dark:text-divine-gold" />}
             </Button>
             <Button
               onClick={() => handleSendMessage(input)}
@@ -406,7 +406,7 @@ const ChatInterface = () => {
               className="rounded-full bg-divine-gold/20 dark:bg-divine-gold/30 hover:bg-divine-gold/30 dark:hover:bg-divine-gold/40"
               disabled={!input.trim() || isProcessing}
             >
-              <Send className="h-5 w-5" />
+              <Send className="h-5 w-5 text-white dark:text-divine-gold" />
             </Button>
           </div>
         </div>
@@ -417,32 +417,33 @@ const ChatInterface = () => {
         .chat-container {
           position: relative;
           width: 100%;
-          height: 100%;
-          display: flex;
-          flex-direction: column;
-          border-radius: 0.75rem;
-          background-color: rgba(255, 255, 255, 0.9);
-          border: 1px solid rgba(255, 215, 0, 0.3);
+          max-width: 800px;
+          margin: 0 auto;
+          border-radius: 1rem;
+          background-color: rgba(26, 35, 126, 0.2);
+          backdrop-filter: blur(10px);
+          border: 1px solid rgba(255, 215, 0, 0.2);
           overflow: hidden;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
         }
         
         .message-container {
           flex-grow: 1;
           overflow-hidden;
           padding: 1.25rem;
-          background-color: rgba(255, 255, 255, 0.6);
+          background-color: rgba(255, 255, 255, 0.05);
         }
         
         .message {
           margin-bottom: 1rem;
           padding: 0.75rem 1rem;
-          border-radius: 0.5rem;
-          max-width: 80%;
+          border-radius: 0.75rem;
+          max-width: 85%;
           animation: fadeIn 0.3s ease-in-out;
-          line-height: 1.5;
+          line-height: 1.6;
           white-space: pre-wrap;
           word-break: break-word;
+          font-size: var(--message-font-size, 16px);
         }
         
         @keyframes fadeIn {
@@ -451,33 +452,35 @@ const ChatInterface = () => {
         }
         
         .user-message {
-          background-color: rgba(63, 81, 181, 0.1);
-          border-left: 4px solid #3f51b5;
+          background-color: rgba(63, 81, 181, 0.15);
+          border-left: 4px solid rgba(63, 81, 181, 0.6);
           margin-left: auto;
           border-top-right-radius: 0;
+          color: rgba(255, 255, 255, 0.95);
         }
         
         .bot-message {
-          background-color: rgba(255, 193, 7, 0.1);
-          border-left: 4px solid #ffc107;
+          background-color: rgba(255, 215, 0, 0.1);
+          border-left: 4px solid rgba(255, 215, 0, 0.5);
           margin-right: auto;
           border-top-left-radius: 0;
+          color: rgba(255, 255, 255, 0.95);
         }
         
         .input-container {
           padding: 1rem;
-          background-color: rgba(25, 25, 70, 0.95);
-          border-top: 1px solid rgba(255, 215, 0, 0.3);
-          color: rgba(255, 255, 255, 0.9);
+          background-color: rgba(26, 35, 126, 0.4);
+          border-top: 1px solid rgba(255, 215, 0, 0.2);
+          color: rgba(255, 255, 255, 0.95);
         }
         
         .divine-input {
           width: 100%;
           padding: 0.75rem 4.5rem 0.75rem 1rem;
           border-radius: 9999px;
-          border: 2px solid rgba(255, 193, 7, 0.5);
+          border: 2px solid rgba(255, 215, 0, 0.3);
           background-color: rgba(255, 255, 255, 0.1);
-          color: rgba(255, 255, 255, 0.9);
+          color: rgba(255, 255, 255, 0.95);
           transition: all 0.3s ease;
         }
         
@@ -487,8 +490,8 @@ const ChatInterface = () => {
         
         .divine-input:focus {
           outline: none;
-          border-color: rgba(255, 193, 7, 0.8);
-          box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.2);
+          border-color: rgba(255, 215, 0, 0.6);
+          box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.2);
         }
         
         .divine-input:disabled {
@@ -512,6 +515,18 @@ const ChatInterface = () => {
         @keyframes divine-fade-in {
           from { opacity: 0; transform: translateY(20px); }
           to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @media (max-width: 640px) {
+          .chat-container {
+            border-radius: 0.5rem;
+            max-width: 100%;
+          }
+          
+          .message {
+            max-width: 90%;
+            font-size: calc(var(--message-font-size, 16px) - 1px);
+          }
         }
         `}
       </style>

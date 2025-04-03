@@ -88,12 +88,22 @@ export default {
 				'divine-glow': {
 					'0%, 100%': { boxShadow: '0 0 5px rgba(255, 215, 0, 0.5)' },
 					'50%': { boxShadow: '0 0 20px rgba(255, 215, 0, 0.8)' }
-				}
+				},
+				'accordion-down': {
+					from: { height: '0' },
+					to: { height: 'var(--radix-accordion-content-height)' },
+				},
+				'accordion-up': {
+					from: { height: 'var(--radix-accordion-content-height)' },
+					to: { height: '0' },
+				},
 			},
 			animation: {
 				'divine-fade-in': 'divine-fade-in 0.5s ease-out',
 				'divine-pulse': 'divine-pulse 2s ease-in-out infinite',
-				'divine-glow': 'divine-glow 2s ease-in-out infinite'
+				'divine-glow': 'divine-glow 2s ease-in-out infinite',
+				'accordion-down': 'accordion-down 0.2s ease-out',
+				'accordion-up': 'accordion-up 0.2s ease-out',
 			}
 		}
 	},

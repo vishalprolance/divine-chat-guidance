@@ -32,7 +32,7 @@
   }
 
   .dark {
-    --background: 240 10% 3.9%;
+    --background: 240 10% 10%;
     --foreground: 0 0% 98%;
     --card: 240 10% 3.9%;
     --card-foreground: 0 0% 98%;
@@ -51,6 +51,8 @@
     --border: 240 3.7% 15.9%;
     --input: 240 3.7% 15.9%;
     --ring: 240 4.9% 83.9%;
+    --divine-gold: 45 100% 60%;
+    --divine-blue: 240 50% 25%;
   }
 }
 
@@ -60,8 +62,15 @@
   }
   body {
     @apply bg-background text-foreground font-sanskrit;
-    min-height: 100vh;
-    background: linear-gradient(to bottom, #0f0c29, #302b63, #24243e);
+    min-height: 100vh; 
+    max-height: 100vh;
+    overflow: hidden;
+  }
+  
+  #root {
+    height: 100vh;
+    max-height: 100vh;
+    overflow: hidden;
   }
 }
 
@@ -129,4 +138,19 @@
 
 .border-divine-blue {
   border-color: hsl(var(--divine-blue));
+}
+
+/* Message highlights and speech */
+.word-highlight {
+  @apply bg-divine-gold/30 dark:bg-divine-gold/40 px-1 rounded;
+  display: inline;
+}
+
+/* Glassmorphism */
+.glass {
+  @apply backdrop-blur-md bg-white/10 border border-white/20;
+}
+
+.dark .glass {
+  @apply backdrop-blur-md bg-divine-blue/10 border border-divine-gold/20;
 }

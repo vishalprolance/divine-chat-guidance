@@ -22,16 +22,16 @@ const ThemeToggle = () => {
 
   return (
     <Button
-      variant="ghost"
+      variant="outline"
       size="icon"
       onClick={() => setIsDarkMode(!isDarkMode)}
-      className="rounded-full bg-gray-200 hover:bg-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700 transition-colors shadow-md"
+      className="rounded-full border-gray-200 bg-white hover:bg-gray-100 dark:border-gray-800 dark:bg-black dark:hover:bg-gray-900 transition-colors"
       aria-label="Toggle theme"
     >
       {isDarkMode ? (
-        <Sun className="h-5 w-5 text-white" />
+        <Sun className="h-5 w-5 text-yellow-500" />
       ) : (
-        <Moon className="h-5 w-5 text-black" />
+        <Moon className="h-5 w-5 text-gray-800" />
       )}
     </Button>
   );

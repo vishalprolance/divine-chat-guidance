@@ -56,7 +56,7 @@ const MessageList = ({
             <span 
               key={`word-${index}`} 
               className={index === highlightedWordIndex ? 
-                'bg-divine-gold/20 dark:bg-divine-gold/30 px-0.5 rounded transition-colors duration-150' : 
+                'bg-black/20 dark:bg-white/30 px-0.5 rounded transition-colors duration-150' : 
                 ''}
             >
               {word}
@@ -68,43 +68,97 @@ const MessageList = ({
   };
 
   return (
-    <ScrollArea className="flex-grow overflow-y-auto py-4 px-4">
-      {messages.length === 0 ? (
-        <div className="flex flex-col items-center justify-center h-full text-divine-blue/60 dark:text-divine-gold/60 animate-divine-fade-in">
-          <p className="text-center mb-4" style={{ fontSize: `${fontSize}px` }}>{greetingMessage}</p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {messages.map((message, index) => (
-            <div
-              key={index}
-              className={`message ${message.type === 'user' ? 'user-message' : 'bot-message'}`}
-            >
-              {renderHighlightedText(
-                message.text, 
-                message.type === 'bot' && currentSpeakingMessage === message.text
-              )}
-            </div>
-          ))}
-          
-          {isProcessing && (
-            <div className="message bot-message">
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-divine-gold rounded-full animate-bounce"></div>
-                <div className="w-2 h-2 bg-divine-gold rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                <div className="w-2 h-2 bg-divine-gold rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+    <ScrollArea className="h-full w-full overflow-y-auto py-4">
+      <div className="px-4 space-y-4" ref={scrollAreaRef}>
+        {messages.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-64 text-gray-500 dark:text-gray-400 animate-divine-fade-in">
+            <p className="text-center mb-4" style={{ fontSize: `${fontSize}px` }}>{greetingMessage}</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {messages.map((message, index) => (
+              <div
+                key={index}
+                className={`message ${message.type === 'user' ? 'message-user' : 'message-bot'}`}
+              >
+                {renderHighlightedText(
+                  message.text, 
+                  message.type === 'bot' && currentSpeakingMessage === message.text
+                )}
               </div>
-            </div>
-          )}
-          
-          {transcript && isRecording && (
-            <div className="message user-message opacity-70">
-              <span style={{ fontSize: `${fontSize}px` }}>{transcript}</span>
-            </div>
-          )}
-        </div>
-      )}
-      <div ref={messagesEndRef} className="h-4" />
+            ))}
+            
+            {isProcessing && (
+              <div className="message message-bot">
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-black dark:bg-white rounded-full animate-bounce"></div>
+                  <div className="w-2 h-2 bg-black dark:bg-white rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  <div className="w-2 h-2 bg-black dark:bg-white rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                </div>
+              </div>
+            )}
+            
+            {transcript && isRecording && (
+              <div className="message message-user opacity-70">
+                <span style={{ fontSize: `${fontSize}px` }}>{transcript}</span>
+              </div>
+            )}
+          </div>
+        )}
+        <div ref={messagesEndRef} className="h-4" />
+      </div>
+      
+      <style jsx>{`
+        .message {
+          margin-bottom: 1rem;
+          padding: 0.75rem 1rem;
+          border-radius: 0.75rem;
+          max-width: 85%;
+          animation: fadeIn 0.3s ease-in-out;
+          line-height: 1.6;
+          white-space: pre-wrap;
+          word-break: break-word;
+        }
+        
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .message-user {
+          background-color: rgba(0, 0, 0, 0.05);
+          border-left: 2px solid rgba(0, 0, 0, 0.2);
+          margin-left: auto;
+          border-top-right-radius: 0;
+          color: #000000;
+        }
+        
+        .dark .message-user {
+          background-color: rgba(255, 255, 255, 0.1);
+          border-left: 2px solid rgba(255, 255, 255, 0.2);
+          color: #ffffff;
+        }
+        
+        .message-bot {
+          background-color: rgba(0, 0, 0, 0.1);
+          border-left: 2px solid rgba(0, 0, 0, 0.3);
+          margin-right: auto;
+          border-top-left-radius: 0;
+          color: #000000;
+        }
+        
+        .dark .message-bot {
+          background-color: rgba(255, 255, 255, 0.05);
+          border-left: 2px solid rgba(255, 255, 255, 0.3);
+          color: #ffffff;
+        }
+        
+        @media (max-width: 640px) {
+          .message {
+            max-width: 90%;
+          }
+        }
+      `}</style>
     </ScrollArea>
   );
 };

@@ -63,7 +63,7 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				// Divine theme colors updated to black and gold
+				// Divine theme colors updated to black and white
 				divine: {
 					blue: '#000000',
 					gold: '#FFD700',
@@ -89,6 +89,11 @@ export default {
 					'0%, 100%': { boxShadow: '0 0 5px rgba(255, 215, 0, 0.5)' },
 					'50%': { boxShadow: '0 0 20px rgba(255, 215, 0, 0.8)' }
 				},
+				'text-highlight': {
+					'0%': { backgroundColor: 'rgba(255, 255, 255, 0.1)' },
+					'50%': { backgroundColor: 'rgba(255, 255, 255, 0.3)' },
+					'100%': { backgroundColor: 'rgba(255, 255, 255, 0.1)' }
+				},
 				'accordion-down': {
 					from: { height: '0' },
 					to: { height: 'var(--radix-accordion-content-height)' },
@@ -102,6 +107,7 @@ export default {
 				'divine-fade-in': 'divine-fade-in 0.5s ease-out',
 				'divine-pulse': 'divine-pulse 2s ease-in-out infinite',
 				'divine-glow': 'divine-glow 2s ease-in-out infinite',
+				'text-highlight': 'text-highlight 2s ease-in-out infinite',
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
 			}

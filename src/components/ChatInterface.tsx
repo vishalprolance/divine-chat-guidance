@@ -1,27 +1,13 @@
+
 import React, { useState, useRef, useEffect } from 'react';
-import { 
-  Mic, 
-  Send, 
-  StopCircle, 
-  Globe, 
-  Trash2, 
-  VolumeX,
-  Settings,
-  Volume2
-} from 'lucide-react';
-import { Button } from './ui/button';
-import { queryGemini } from '../services/geminiService';
-import MessageList from './MessageList';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
-import FontSizeSettings from './FontSizeSettings';
 import SpeechService from '../services/speechService';
-import { 
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { queryGemini } from '../services/geminiService';
+import MessageList from './MessageList';
+import ChatInput from './ChatInput';
+import LanguageSelector from './LanguageSelector';
+import ChatActions from './ChatActions';
 
 const ChatInterface = () => {
   const [messages, setMessages] = useState<Array<{type: 'user' | 'bot', text: string}>>([]);
@@ -34,7 +20,6 @@ const ChatInterface = () => {
   const [fontSize, setFontSize] = useState(16); // Default font size
   const [highlightedWordIndex, setHighlightedWordIndex] = useState<number | null>(null);
   const [currentSpeakingMessage, setCurrentSpeakingMessage] = useState<string | null>(null);
-  const [showsSettings, setShowSettings] = useState(false);
   
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const speechServiceRef = useRef<SpeechService>(new SpeechService());
@@ -172,9 +157,8 @@ const ChatInterface = () => {
     setCurrentSpeakingMessage(null);
   };
 
-  const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newLanguage = e.target.value;
-    setLanguage(newLanguage);
+  const handleLanguageChange = (value: string) => {
+    setLanguage(value);
     
     stopSpeaking();
     
@@ -182,7 +166,7 @@ const ChatInterface = () => {
       stopRecording(false);
       
       setTimeout(() => {
-        startRecording(newLanguage);
+        startRecording(value);
       }, 300);
     }
   };
@@ -210,7 +194,7 @@ const ChatInterface = () => {
     if (!isRecording) {
       startRecording(language);
     } else {
-      stopRecording(false);
+      stopRecording(true);
     }
   };
 
@@ -274,18 +258,42 @@ const ChatInterface = () => {
       setIsRecording(false);
       
       if (temporaryTranscriptRef.current.trim() && sendTranscript) {
-        setInput(temporaryTranscriptRef.current.trim());
+        handleSendMessage(temporaryTranscriptRef.current.trim());
       }
       
       setTranscript('');
     }
   };
 
+  const speakLastMessage = () => {
+    if (messages.length > 0 && messages[messages.length - 1].type === 'bot') {
+      speakResponse(messages[messages.length - 1].text);
+    }
+  };
+
   const greetingMessage = greetingMessages[language] || greetingMessages['en-US'];
 
   return (
-    <div className="chat-container h-full flex flex-col">
-      <ScrollArea className="message-container flex-grow overflow-hidden">
+    <div className="flex flex-col h-full rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden bg-gray-50 dark:bg-gray-950">
+      <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-black">
+        <LanguageSelector 
+          language={language}
+          onChange={handleLanguageChange}
+          languages={languages}
+        />
+        
+        <ChatActions 
+          messages={messages}
+          isSpeaking={isSpeaking}
+          fontSize={fontSize}
+          onFontSizeChange={setFontSize}
+          onClearChat={clearChat}
+          onStopSpeaking={stopSpeaking}
+          onSpeakLastMessage={speakLastMessage}
+        />
+      </div>
+      
+      <div className="flex-grow overflow-hidden relative">
         <MessageList 
           messages={messages}
           isProcessing={isProcessing}
@@ -296,240 +304,18 @@ const ChatInterface = () => {
           highlightedWordIndex={highlightedWordIndex}
           currentSpeakingMessage={currentSpeakingMessage}
         />
-      </ScrollArea>
-      
-      <div className="input-container mt-auto">
-        <div className="flex flex-wrap justify-between mb-2 gap-2">
-          <div className="flex items-center">
-            <label htmlFor="language-select" className="flex items-center text-sm text-white/90 dark:text-divine-gold/90 mr-2">
-              <Globe className="h-4 w-4 mr-1" />
-              Language:
-            </label>
-            <select
-              id="language-select"
-              value={language}
-              onChange={handleLanguageChange}
-              className="text-sm rounded border-divine-gold/30 bg-white/20 dark:bg-divine-blue/30 text-white dark:text-divine-gold focus:ring-divine-gold/50 focus:border-divine-gold/50"
-            >
-              {languages.map((lang) => (
-                <option key={lang.code} value={lang.code}>
-                  {lang.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <Popover open={showsSettings} onOpenChange={setShowSettings}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-sm flex items-center gap-1 text-white/90 dark:text-divine-gold/90 hover:bg-white/10 dark:hover:bg-divine-gold/20"
-                >
-                  <Settings className="h-4 w-4" />
-                  Settings
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-80 bg-white/90 dark:bg-divine-blue/90 border border-divine-gold/20">
-                <div className="space-y-4">
-                  <h4 className="font-medium leading-none mb-2 text-divine-blue dark:text-divine-gold">Display Settings</h4>
-                  <FontSizeSettings 
-                    fontSize={fontSize} 
-                    onFontSizeChange={setFontSize} 
-                  />
-                </div>
-              </PopoverContent>
-            </Popover>
-            
-            {isSpeaking ? (
-              <Button
-                onClick={stopSpeaking}
-                variant="ghost"
-                size="sm"
-                className="text-sm flex items-center gap-1 text-red-500 hover:bg-red-500/10"
-                title="Stop Speaking"
-              >
-                <VolumeX className="h-4 w-4" />
-                Stop Voice
-              </Button>
-            ) : messages.length > 0 && messages[messages.length - 1].type === 'bot' && (
-              <Button
-                onClick={() => speakResponse(messages[messages.length - 1].text)}
-                variant="ghost"
-                size="sm"
-                className="text-sm flex items-center gap-1 text-white/90 dark:text-divine-gold/90 hover:bg-white/10 dark:hover:bg-divine-gold/20"
-              >
-                <Volume2 className="h-4 w-4" />
-                Speak
-              </Button>
-            )}
-            
-            {messages.length > 0 && (
-              <Button
-                onClick={clearChat}
-                variant="ghost"
-                size="sm"
-                className="text-sm flex items-center gap-1 text-white/90 dark:text-divine-gold/90 hover:bg-white/10 dark:hover:bg-divine-gold/20"
-              >
-                <Trash2 className="h-4 w-4" />
-                Clear Chat
-              </Button>
-            )}
-          </div>
-        </div>
-        
-        <div className="relative">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage(input)}
-            placeholder="Ask your question..."
-            className="divine-input"
-            disabled={isProcessing}
-          />
-          <div className="flex gap-2 absolute right-6 bottom-1/2 transform translate-y-1/2">
-            <Button
-              onClick={toggleRecording}
-              variant="ghost"
-              size="icon"
-              className={`rounded-full ${isRecording ? 'animate-divine-pulse bg-red-500/20 dark:bg-red-500/40' : 'bg-divine-gold/20 dark:bg-divine-gold/30 hover:bg-divine-gold/30 dark:hover:bg-divine-gold/40'}`}
-              disabled={isProcessing}
-            >
-              {isRecording ? <StopCircle className="h-5 w-5 text-red-500" /> : <Mic className="h-5 w-5 text-white dark:text-divine-gold" />}
-            </Button>
-            <Button
-              onClick={() => handleSendMessage(input)}
-              variant="ghost"
-              size="icon"
-              className="rounded-full bg-divine-gold/20 dark:bg-divine-gold/30 hover:bg-divine-gold/30 dark:hover:bg-divine-gold/40"
-              disabled={!input.trim() || isProcessing}
-            >
-              <Send className="h-5 w-5 text-white dark:text-divine-gold" />
-            </Button>
-          </div>
-        </div>
       </div>
       
-      <style>
-        {`
-        .chat-container {
-          position: relative;
-          width: 100%;
-          max-width: 800px;
-          margin: 0 auto;
-          border-radius: 1rem;
-          background-color: rgba(26, 35, 126, 0.2);
-          backdrop-filter: blur(10px);
-          border: 1px solid rgba(255, 215, 0, 0.2);
-          overflow: hidden;
-          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-        }
-        
-        .message-container {
-          flex-grow: 1;
-          overflow-hidden;
-          padding: 1.25rem;
-          background-color: rgba(255, 255, 255, 0.05);
-        }
-        
-        .message {
-          margin-bottom: 1rem;
-          padding: 0.75rem 1rem;
-          border-radius: 0.75rem;
-          max-width: 85%;
-          animation: fadeIn 0.3s ease-in-out;
-          line-height: 1.6;
-          white-space: pre-wrap;
-          word-break: break-word;
-          font-size: var(--message-font-size, 16px);
-        }
-        
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .user-message {
-          background-color: rgba(63, 81, 181, 0.15);
-          border-left: 4px solid rgba(63, 81, 181, 0.6);
-          margin-left: auto;
-          border-top-right-radius: 0;
-          color: rgba(255, 255, 255, 0.95);
-        }
-        
-        .bot-message {
-          background-color: rgba(255, 215, 0, 0.1);
-          border-left: 4px solid rgba(255, 215, 0, 0.5);
-          margin-right: auto;
-          border-top-left-radius: 0;
-          color: rgba(255, 255, 255, 0.95);
-        }
-        
-        .input-container {
-          padding: 1rem;
-          background-color: rgba(26, 35, 126, 0.4);
-          border-top: 1px solid rgba(255, 215, 0, 0.2);
-          color: rgba(255, 255, 255, 0.95);
-        }
-        
-        .divine-input {
-          width: 100%;
-          padding: 0.75rem 4.5rem 0.75rem 1rem;
-          border-radius: 9999px;
-          border: 2px solid rgba(255, 215, 0, 0.3);
-          background-color: rgba(255, 255, 255, 0.1);
-          color: rgba(255, 255, 255, 0.95);
-          transition: all 0.3s ease;
-        }
-        
-        .divine-input::placeholder {
-          color: rgba(255, 255, 255, 0.6);
-        }
-        
-        .divine-input:focus {
-          outline: none;
-          border-color: rgba(255, 215, 0, 0.6);
-          box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.2);
-        }
-        
-        .divine-input:disabled {
-          opacity: 0.7;
-          cursor: not-allowed;
-        }
-        
-        .animate-divine-pulse {
-          animation: divine-pulse 1.5s infinite;
-        }
-        
-        @keyframes divine-pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.6; }
-        }
-        
-        .animate-divine-fade-in {
-          animation: divine-fade-in 1s ease-out;
-        }
-        
-        @keyframes divine-fade-in {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        
-        @media (max-width: 640px) {
-          .chat-container {
-            border-radius: 0.5rem;
-            max-width: 100%;
-          }
-          
-          .message {
-            max-width: 90%;
-            font-size: calc(var(--message-font-size, 16px) - 1px);
-          }
-        }
-        `}
-      </style>
+      <div className="p-3 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-black">
+        <ChatInput 
+          input={input}
+          setInput={setInput}
+          isRecording={isRecording}
+          isProcessing={isProcessing}
+          toggleRecording={toggleRecording}
+          handleSendMessage={handleSendMessage}
+        />
+      </div>
     </div>
   );
 };

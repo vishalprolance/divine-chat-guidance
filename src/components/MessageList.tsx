@@ -108,7 +108,8 @@ const MessageList = ({
         <div ref={messagesEndRef} className="h-4" />
       </div>
       
-      <style jsx>{`
+      <style>
+        {`
         .message {
           margin-bottom: 1rem;
           padding: 0.75rem 1rem;
@@ -158,7 +159,8 @@ const MessageList = ({
             max-width: 90%;
           }
         }
-      `}</style>
+        `}
+      </style>
     </ScrollArea>
   );
 };

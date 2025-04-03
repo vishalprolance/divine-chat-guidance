@@ -1,4 +1,3 @@
-
 /**
  * Enhanced service to handle text-to-speech functionality across different languages
  * with improved support for Indic languages like Kannada and Bengali using external TTS APIs
@@ -40,10 +39,43 @@ class SpeechService {
   }
 
   /**
+   * Cleans text for speech synthesis by handling punctuation
+   * to improve speech quality and avoid reading symbols
+   */
+  private cleanTextForSpeech(text: string): string {
+    // Replace special characters with appropriate pauses or ignore them
+    return text
+      // Replace asterisks and their content with just the content
+      .replace(/\*([^*]+)\*/g, '$1')
+      // Replace dashes with slight pause
+      .replace(/--+/g, ', ')
+      .replace(/\s-\s/g, ', ')
+      // Replace bullets with pauses
+      .replace(/•/g, ', ')
+      // Replace multiple dots with pause
+      .replace(/\.{2,}/g, '. ')
+      // Remove hash symbols
+      .replace(/#/g, '')
+      // Clean up brackets of all kinds and their content
+      .replace(/\[([^\]]+)\]/g, '$1')
+      .replace(/\(([^)]+)\)/g, '$1')
+      .replace(/\{([^}]+)\}/g, '$1')
+      // Replace slashes with "or" in most contexts
+      .replace(/(\w)\/(\w)/g, '$1 or $2')
+      // Remove any repeated spaces
+      .replace(/\s+/g, ' ')
+      // Final trim
+      .trim();
+  }
+
+  /**
    * Splits long text into smaller chunks for reliable speech synthesis
    * With special handling for complex scripts like Kannada and Bengali
    */
   private splitTextIntoChunks(text: string, language: string): string[] {
+    // Clean the text before splitting it
+    const cleanedText = this.cleanTextForSpeech(text);
+    
     // Use smaller chunks for languages that need more processing
     let chunkSize = 80; // Default smaller chunks for all languages
     
@@ -66,12 +98,12 @@ class SpeechService {
     // Include language-specific sentence endings
     const sentenceRegex = /[^.!?।॥\n]+[.!?।॥\n]+|\s+/g;
     // Ensure match returns a non-null value or use an empty array as fallback
-    const matches = text.match(sentenceRegex) || [];
-    let sentences: string[] = matches.length > 0 ? Array.from(matches) : [text];
+    const matches = cleanedText.match(sentenceRegex) || [];
+    let sentences: string[] = matches.length > 0 ? Array.from(matches) : [cleanedText];
     
     // If we couldn't split by sentences, split by words as a fallback
-    if (sentences.length === 1 && text.length > chunkSize) {
-      sentences = text.split(/\s+/).map(word => word + ' ');
+    if (sentences.length === 1 && cleanedText.length > chunkSize) {
+      sentences = cleanedText.split(/\s+/).map(word => word + ' ');
     }
     
     let currentChunk = '';
@@ -415,7 +447,10 @@ class SpeechService {
   private setupTextHighlighting(text: string, rate: number): void {
     if (!this.onTextHighlight) return;
     
-    this.textToHighlight = text;
+    // Clean the text for highlighting too
+    const cleanedText = this.cleanTextForSpeech(text);
+    
+    this.textToHighlight = cleanedText;
     this.currentHighlightIndex = 0;
     
     // Clear any existing highlight timeouts
@@ -423,7 +458,7 @@ class SpeechService {
     this.highlightTimeouts = [];
     
     // Split text into words
-    const words = text.split(/\s+/);
+    const words = cleanedText.split(/\s+/);
     
     // Calculate average word length for this language
     const avgWordsPerMinute = rate < 0.9 ? 150 : 180; // Slower for complex scripts

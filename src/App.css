@@ -66,13 +66,9 @@ body {
 
 /* Enhanced animations for text highlighting */
 @keyframes pulse-highlight {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-  100% { transform: scale(1); }
-}
-
-.bg-purple-200, .dark .bg-purple-800 {
-  animation: pulse-highlight 1s infinite;
+  0% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.05); opacity: 1; }
+  100% { transform: scale(1); opacity: 0.8; }
 }
 
 /* Improve scrolling on mobile */
@@ -97,4 +93,15 @@ body {
 .dark .glass-effect {
   background: rgba(0, 0, 0, 0.2);
   border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Enhanced text highlight animation */
+@keyframes highlight-pulse {
+  0% { opacity: 0.8; box-shadow: 0 0 2px rgba(144, 97, 249, 0.2); }
+  50% { opacity: 1; box-shadow: 0 0 8px rgba(144, 97, 249, 0.5); }
+  100% { opacity: 0.8; box-shadow: 0 0 2px rgba(144, 97, 249, 0.2); }
+}
+
+.highlighted-word {
+  animation: highlight-pulse 1.5s infinite;
 }

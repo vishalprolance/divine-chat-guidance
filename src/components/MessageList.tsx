@@ -59,7 +59,7 @@ const MessageList = ({
             <span 
               key={`word-${index}`} 
               className={index === highlightedWordIndex ? 
-                'highlighted-word' : 
+                'highlighted-word bg-purple-200 dark:bg-purple-800 rounded px-1 py-0.5' : 
                 ''}
             >
               {word}
@@ -71,7 +71,7 @@ const MessageList = ({
   };
 
   return (
-    <ScrollArea className="flex-1 w-full" data-test-id="message-scroll-area">
+    <ScrollArea className="flex-1 w-full overflow-y-auto" data-test-id="message-scroll-area">
       <div className="px-4 space-y-4 pb-6" ref={scrollAreaRef}>
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-gray-500 dark:text-gray-400 animate-divine-fade-in">
@@ -122,6 +122,8 @@ const MessageList = ({
           line-height: 1.6;
           white-space: pre-wrap;
           word-break: break-word;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+          transition: all 0.3s ease;
         }
         
         @keyframes fadeIn {
@@ -130,50 +132,37 @@ const MessageList = ({
         }
         
         .message-user {
-          background-color: rgba(0, 0, 0, 0.05);
-          border-left: 2px solid rgba(0, 0, 0, 0.2);
+          background-color: rgba(210, 230, 255, 0.5);
+          border-left: 3px solid rgba(100, 150, 255, 0.7);
           margin-left: auto;
           border-top-right-radius: 0;
           color: #000000;
         }
         
         .dark .message-user {
-          background-color: rgba(255, 255, 255, 0.1);
-          border-left: 2px solid rgba(255, 255, 255, 0.2);
+          background-color: rgba(50, 80, 140, 0.4);
+          border-left: 3px solid rgba(100, 150, 255, 0.5);
           color: #ffffff;
         }
         
         .message-bot {
-          background-color: rgba(0, 0, 0, 0.1);
-          border-left: 2px solid rgba(0, 0, 0, 0.3);
+          background-color: rgba(240, 240, 250, 0.5);
+          border-left: 3px solid rgba(120, 90, 190, 0.7);
           margin-right: auto;
           border-top-left-radius: 0;
           color: #000000;
         }
         
         .dark .message-bot {
-          background-color: rgba(255, 255, 255, 0.05);
-          border-left: 2px solid rgba(255, 255, 255, 0.3);
+          background-color: rgba(60, 50, 100, 0.4);
+          border-left: 3px solid rgba(150, 130, 200, 0.6);
           color: #ffffff;
         }
         
         .highlighted-word {
-          background-color: #e9d8fd;
-          color: #4c1d95;
-          padding: 0 4px;
-          margin: 0 -1px;
-          border-radius: 4px;
-          display: inline-block;
           animation: pulse 1s infinite;
           font-weight: 500;
           transition: all 0.2s ease;
-          box-shadow: 0 0 4px rgba(144, 97, 249, 0.5);
-        }
-        
-        .dark .highlighted-word {
-          background-color: #6d28d9;
-          color: #ffffff;
-          box-shadow: 0 0 8px rgba(192, 132, 252, 0.5);
         }
         
         @keyframes pulse {

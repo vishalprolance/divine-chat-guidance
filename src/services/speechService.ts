@@ -114,44 +114,41 @@ class SpeechService {
     // Enhanced language-specific fallbacks with better matching logic
     if (!preferredVoice) {
       if (language === "hi-IN") {
-        // For Hindi - try Google Hindi first, then any Indian voice
+        // For Hindi - try Google Hindi first
         preferredVoice = voices.find(voice => 
-          voice.name.toLowerCase().includes("google") && voice.lang.includes("hi") ||
           voice.name.toLowerCase().includes("hindi") ||
+          voice.lang.includes("hi") ||
           voice.name.toLowerCase().includes("indian")
         );
       } else if (language === "kn-IN") {
-        // For Kannada - try any Google voice with Indian accent as fallback
+        // For Kannada - first try Hindi as fallback (better than German)
+        // Since many browsers don't have native Kannada support but Hindi sounds closer
         preferredVoice = voices.find(voice => 
-          voice.name.toLowerCase().includes("google") && voice.lang.includes("kn") ||
           voice.name.toLowerCase().includes("kannada") ||
-          voice.name.toLowerCase().includes("google") && voice.lang.includes("in") ||
+          voice.lang.includes("kn") ||
+          voice.name.toLowerCase().includes("हिन्दी") ||
+          voice.name.toLowerCase().includes("hindi") ||
+          voice.lang.includes("hi-IN") ||
           voice.name.toLowerCase().includes("indian")
         );
-        // If still no voice, try any Google voice as they handle Unicode better
-        if (!preferredVoice) {
-          preferredVoice = voices.find(voice => voice.name.toLowerCase().includes("google"));
-        }
       } else if (language === "bn-IN") {
-        // For Bengali - try any Google voice as fallback
+        // For Bengali - first try Hindi as fallback (better than German)
         preferredVoice = voices.find(voice => 
-          voice.name.toLowerCase().includes("google") && voice.lang.includes("bn") ||
           voice.name.toLowerCase().includes("bengali") ||
           voice.name.toLowerCase().includes("bangla") ||
-          voice.name.toLowerCase().includes("google") && voice.lang.includes("in") ||
+          voice.lang.includes("bn") ||
+          voice.name.toLowerCase().includes("हिन्दी") ||
+          voice.name.toLowerCase().includes("hindi") ||
+          voice.lang.includes("hi-IN") ||
           voice.name.toLowerCase().includes("indian")
         );
-        // If still no voice, try any Google voice
-        if (!preferredVoice) {
-          preferredVoice = voices.find(voice => voice.name.toLowerCase().includes("google"));
-        }
       } else if (language === "sa-IN") {
         // For Sanskrit - try Hindi as fallback since they share script
         preferredVoice = voices.find(voice => 
           voice.lang.includes("sa") || 
           voice.name.toLowerCase().includes("sanskrit") || 
-          voice.name.toLowerCase().includes("google") && voice.lang.includes("hi-IN") ||
           voice.name.toLowerCase().includes("hindi") ||
+          voice.lang.includes("hi-IN") ||
           voice.name.toLowerCase().includes("indian")
         );
       } else if (language === "mr-IN") {
@@ -159,24 +156,50 @@ class SpeechService {
         preferredVoice = voices.find(voice => 
           voice.lang.includes("mr") || 
           voice.name.toLowerCase().includes("marathi") || 
-          voice.name.toLowerCase().includes("google") && voice.lang.includes("hi-IN") ||
           voice.name.toLowerCase().includes("hindi") ||
+          voice.lang.includes("hi-IN") ||
           voice.name.toLowerCase().includes("indian")
         );
       }
     }
     
-    // If still no voice, prioritize Google voices as they handle Unicode better
-    if (!preferredVoice) {
+    // If still no voice and it's an Indian language, try using Hindi voice
+    // Hindi is better than German for most Indian languages
+    if (!preferredVoice && language.endsWith("-IN")) {
       preferredVoice = voices.find(voice => 
-        voice.name.includes("Google")
+        voice.name.includes("हिन्दी") ||
+        voice.name.includes("Hindi") ||
+        voice.lang === "hi-IN"
       );
     }
     
-    // Last resort - just use any available voice
-    if (!preferredVoice && voices.length > 0) {
-      // Prefer Microsoft voices if available as they tend to be better quality
-      preferredVoice = voices.find(voice => voice.name.includes("Microsoft")) || voices[0];
+    // If still no voice, try to find any Indian English voice
+    if (!preferredVoice && language.endsWith("-IN")) {
+      preferredVoice = voices.find(voice => 
+        voice.name.includes("Indian") || 
+        voice.name.includes("Ravi") || 
+        voice.name.includes("Heera") || 
+        voice.lang === "en-IN"
+      );
+    }
+    
+    // For Indic languages, specifically avoid German if possible
+    if (language.endsWith("-IN") && preferredVoice && preferredVoice.name.includes("Deutsch")) {
+      // Try to find ANY voice that isn't German
+      const nonGermanVoice = voices.find(voice => 
+        !voice.name.includes("Deutsch") && 
+        (voice.lang.includes("IN") || voice.lang.includes("US") || voice.lang.includes("GB"))
+      );
+      
+      if (nonGermanVoice) {
+        preferredVoice = nonGermanVoice;
+      }
+    }
+    
+    // Last resort - just use English voice instead of German
+    if ((!preferredVoice || preferredVoice.name.includes("Deutsch")) && voices.length > 0) {
+      // Prefer any English voice over German for Indian languages
+      preferredVoice = voices.find(voice => voice.lang.includes("en-US") || voice.lang.includes("en-IN") || voice.lang.includes("en-GB")) || voices[0];
     }
     
     if (preferredVoice) {

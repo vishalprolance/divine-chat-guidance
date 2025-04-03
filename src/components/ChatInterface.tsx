@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -24,6 +23,7 @@ const ChatInterface = () => {
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const speechServiceRef = useRef<SpeechService>(new SpeechService());
   const temporaryTranscriptRef = useRef<string>('');
+  const chatContainerRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
   const { toast } = useToast();
 
@@ -274,8 +274,8 @@ const ChatInterface = () => {
   const greetingMessage = greetingMessages[language] || greetingMessages['en-US'];
 
   return (
-    <div className="flex flex-col h-full rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden bg-gray-50 dark:bg-gray-950">
-      <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-black">
+    <div className="flex flex-col h-full max-h-full rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden bg-gray-50 dark:bg-gray-950" ref={chatContainerRef}>
+      <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-black sticky top-0 z-10">
         <LanguageSelector 
           language={language}
           onChange={handleLanguageChange}
@@ -306,7 +306,7 @@ const ChatInterface = () => {
         />
       </div>
       
-      <div className="p-3 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-black">
+      <div className="p-3 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-black sticky bottom-0 z-10">
         <ChatInput 
           input={input}
           setInput={setInput}

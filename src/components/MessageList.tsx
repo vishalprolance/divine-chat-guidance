@@ -33,7 +33,9 @@ const MessageList = ({
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
   }, [messages, transcript, isProcessing]);
 
   // Helper function to highlight the currently spoken word
@@ -43,6 +45,7 @@ const MessageList = ({
     }
 
     const words = text.split(/(\s+)/);
+    
     return (
       <span style={{ fontSize: `${fontSize}px` }}>
         {words.map((word, index) => {
@@ -56,7 +59,7 @@ const MessageList = ({
             <span 
               key={`word-${index}`} 
               className={index === highlightedWordIndex ? 
-                'bg-black/20 dark:bg-white/30 px-0.5 rounded transition-colors duration-150' : 
+                'bg-purple-200 dark:bg-purple-800 px-1 py-0.5 rounded transition-colors duration-150' : 
                 ''}
             >
               {word}
@@ -68,7 +71,7 @@ const MessageList = ({
   };
 
   return (
-    <ScrollArea className="h-full w-full overflow-y-auto py-4">
+    <ScrollArea className="h-full w-full overflow-y-auto py-4" data-test-id="message-scroll-area">
       <div className="px-4 space-y-4" ref={scrollAreaRef}>
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-gray-500 dark:text-gray-400 animate-divine-fade-in">

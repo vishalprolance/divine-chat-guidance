@@ -6,34 +6,32 @@ import ThemeToggle from '@/components/ThemeToggle';
 
 const Home = () => {
   return (
-    <div className="min-h-screen flex flex-col bg-white dark:bg-black text-black dark:text-white">
-      <header className="w-full p-4 flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Life Guidance</h1>
-        <ThemeToggle />
-      </header>
-
-      <main className="flex-1 flex flex-col items-center justify-center px-4 text-center">
-        <div className="max-w-2xl mx-auto animate-divine-fade-in">
-          <h2 className="text-4xl md:text-5xl font-bold mb-6">
-            Seek wisdom from the eternal teachings
+    <div className="min-h-screen flex flex-col overflow-hidden bg-white dark:bg-black">
+      <div className="container flex flex-col items-center justify-center h-screen px-4 py-10 gap-6">
+        <header className="w-full flex justify-between items-center mb-8 sticky top-0 z-10">
+          <h1 className="text-2xl font-bold text-black dark:text-white">Life Guidance</h1>
+          <ThemeToggle />
+        </header>
+        
+        <div className="flex flex-col items-center justify-center flex-grow text-center max-w-xl">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4 text-black dark:text-white">
+            Find Inner Peace Through Ancient Wisdom
           </h2>
-          <p className="text-lg md:text-xl mb-10 text-gray-700 dark:text-gray-300">
-            Explore timeless wisdom from the Bhagavad Gita and ancient texts to find guidance for your modern life challenges.
+          <p className="text-lg md:text-xl mb-8 text-gray-700 dark:text-gray-300">
+            Explore timeless teachings from the Bhagavad Gita and other ancient texts
+            to guide you through life's challenges.
           </p>
-          
-          <div className="space-y-4">
-            <Link to="/chat">
-              <Button className="px-8 py-6 text-lg rounded-lg bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors">
-                Begin Your Journey
-              </Button>
-            </Link>
-          </div>
+          <Link to="/chat" className="w-full max-w-xs">
+            <Button className="w-full bg-black hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200 py-6 text-lg rounded-full">
+              Start Your Journey
+            </Button>
+          </Link>
         </div>
-      </main>
-
-      <footer className="w-full p-4 text-center text-sm text-gray-600 dark:text-gray-400">
-        Inspired by the timeless wisdom of Bhagavad Gita and ancient texts
-      </footer>
+        
+        <footer className="w-full mt-auto text-center text-sm text-gray-600 dark:text-gray-400 py-4">
+          Inspired by the timeless wisdom of Bhagavad Gita and ancient texts
+        </footer>
+      </div>
     </div>
   );
 };

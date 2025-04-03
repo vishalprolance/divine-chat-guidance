@@ -9,8 +9,8 @@ import { ArrowLeft } from 'lucide-react';
 const Chat = () => {
   return (
     <div className="min-h-screen flex flex-col px-2 py-2 md:px-4 md:py-4 overflow-hidden bg-white dark:bg-black">
-      <div className="w-full max-w-3xl mx-auto h-full flex flex-col overflow-hidden">
-        <div className="flex justify-between items-center mb-4">
+      <div className="w-full max-w-3xl mx-auto h-[calc(100vh-16px)] flex flex-col overflow-hidden">
+        <div className="flex justify-between items-center mb-4 sticky top-0 z-10 bg-white dark:bg-black">
           <div className="flex items-center gap-2">
             <Link to="/">
               <Button variant="ghost" size="icon" className="rounded-full">
@@ -33,7 +33,7 @@ const Chat = () => {
           <ChatInterface />
         </div>
         
-        <footer className="mt-1 text-center text-xs text-gray-600 dark:text-gray-400">
+        <footer className="mt-1 text-center text-xs text-gray-600 dark:text-gray-400 py-2 sticky bottom-0 bg-white dark:bg-black">
           Inspired by the timeless wisdom of Bhagavad Gita and ancient texts
         </footer>
       </div>

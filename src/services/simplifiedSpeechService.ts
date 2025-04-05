@@ -1,5 +1,8 @@
 
 import IndicTTSService from './indicTTSService';
+import { findBestVoice, getSpeechRate } from '../utils/voiceUtils';
+import { splitTextIntoChunks, cleanTextForSpeech } from '../utils/textUtils';
+import { setupTextHighlighting, clearHighlightTimeouts } from '../utils/highlightUtils';
 
 /**
  * Simplified speech service that prioritizes Indic languages through AI4Bharat
@@ -12,6 +15,9 @@ class SimplifiedSpeechService {
   private textToHighlight: string = '';
   private currentHighlightIndex = 0;
   private highlightTimeouts: number[] = [];
+  private watchdogInterval: number | null = null;
+  private chunkedUtterances: SpeechSynthesisUtterance[] = [];
+  private currentUtteranceIndex = 0;
   
   // Event callbacks
   public onSpeechStart: (() => void) | null = null;
@@ -84,147 +90,206 @@ class SimplifiedSpeechService {
     // Stop any ongoing speech
     window.speechSynthesis.cancel();
     
-    // Create a new utterance
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = language;
-    this.utterance = utterance;
+    // Split text into smaller chunks for better reliability
+    const textChunks = splitTextIntoChunks(text, language);
+    this.chunkedUtterances = [];
+    this.currentUtteranceIndex = 0;
     
-    // Adjust speech parameters based on language
-    let rate = 0.9; // Default slower rate for better sync
-    utterance.rate = rate;
-    utterance.pitch = 1.0;
+    // Find the best voice for this language
+    const voice = findBestVoice(language);
     
-    // Find the best voice
-    const voices = window.speechSynthesis.getVoices();
-    let preferredVoice = null;
+    // Get appropriate speech rate for this language
+    const rate = getSpeechRate(language);
     
-    // Language-specific voice selection
-    switch (language) {
-      case 'hi-IN':
-        preferredVoice = voices.find(v => v.lang === 'hi-IN' || v.name.toLowerCase().includes('hindi'));
-        break;
-      case 'mr-IN':
-        preferredVoice = voices.find(v => v.lang === 'mr-IN' || v.name.toLowerCase().includes('marathi'));
-        if (!preferredVoice) {
-          // Fallback to Hindi for Marathi if no Marathi voice
-          preferredVoice = voices.find(v => v.lang === 'hi-IN' || v.name.toLowerCase().includes('hindi'));
-        }
-        break;
-      case 'sa-IN':
-        preferredVoice = voices.find(v => v.lang === 'sa-IN' || v.name.toLowerCase().includes('sanskrit'));
-        if (!preferredVoice) {
-          // Fallback to Hindi for Sanskrit if no Sanskrit voice
-          preferredVoice = voices.find(v => v.lang === 'hi-IN' || v.name.toLowerCase().includes('hindi'));
-        }
-        break;
-      default:
-        preferredVoice = voices.find(voice => voice.lang === language) || 
-                        voices.find(voice => voice.lang.startsWith(language.split('-')[0])) ||
-                        voices.find(voice => voice.lang.includes('en')) ||
-                        voices[0];
-    }
-    
-    if (preferredVoice) {
-      utterance.voice = preferredVoice;
-      console.log(`Using voice: ${preferredVoice.name} (${preferredVoice.lang}) for language: ${language}`);
-    }
-    
-    // Setup event handlers
-    utterance.onstart = () => {
-      this.isSpeaking = true;
-      this.setupTextHighlighting(text, rate, language);
-      if (this.onSpeechStart) this.onSpeechStart();
-    };
-    
-    utterance.onend = () => {
-      this.isSpeaking = false;
-      this.clearHighlightTimeouts();
-      if (this.onSpeechEnd) this.onSpeechEnd();
-    };
-    
-    utterance.onerror = (event) => {
-      this.isSpeaking = false;
-      console.error("Speech synthesis error:", event);
-      this.clearHighlightTimeouts();
-      if (this.onSpeechError) this.onSpeechError(event);
-    };
-    
-    // Start speaking
-    try {
-      window.speechSynthesis.speak(utterance);
-    } catch (error) {
-      console.error("Error starting speech synthesis:", error);
-      this.isSpeaking = false;
-      if (this.onSpeechError) this.onSpeechError(error);
-    }
-  }
-
-  /**
-   * Set up text highlighting with proper timing adjusted for each language
-   */
-  private setupTextHighlighting(text: string, rate: number, language: string): void {
-    if (!this.onTextHighlight) return;
-    
-    this.textToHighlight = text;
-    this.currentHighlightIndex = 0;
-    
-    // Clear any existing highlight timeouts
-    this.clearHighlightTimeouts();
-    
-    // Split text into words
-    const words = text.split(/\s+/);
-    
-    // Calculate time per word based on language complexity and reading speed
-    // Slower words per minute = longer time per word for better sync
-    let avgWordsPerMinute;
-    if (language === 'kn-IN') {
-      avgWordsPerMinute = 70; // Slowest for Kannada
-    } else if (language === 'bn-IN') {
-      avgWordsPerMinute = 75; // Slow for Bengali
-    } else if (['hi-IN', 'mr-IN', 'sa-IN'].includes(language)) {
-      avgWordsPerMinute = 90; // Medium for other Indic languages
-    } else {
-      avgWordsPerMinute = 120; // Default for Latin script
-    }
-    
-    const msPerWord = 60000 / avgWordsPerMinute / rate;
-    
-    // Set up timeouts for each word with progressive timing
-    let currentTime = 100; // Start almost immediately
-    
-    words.forEach((word, index) => {
-      // Calculate delay based on word length and language
-      let wordDelay;
+    // Create utterances for each chunk
+    for (const chunk of textChunks) {
+      if (!chunk.trim()) continue; // Skip empty chunks
       
-      if (['kn-IN', 'bn-IN'].includes(language)) {
-        // Kannada and Bengali words need more time per character
-        wordDelay = msPerWord * (1 + 0.5 * (word.length / 3));
-      } else if (['hi-IN', 'mr-IN', 'sa-IN'].includes(language)) {
-        // Hindi, Marathi and Sanskrit
-        wordDelay = msPerWord * (1 + 0.3 * (word.length / 4));
-      } else {
-        // Latin script
-        wordDelay = msPerWord * (0.8 + 0.2 * (word.length / 5));
+      const utterance = new SpeechSynthesisUtterance(chunk);
+      utterance.lang = language;
+      utterance.rate = rate;
+      utterance.pitch = 1.0;
+      
+      // Set voice if we found one
+      if (voice) {
+        utterance.voice = voice;
       }
       
-      const timeout = window.setTimeout(() => {
-        if (this.isSpeaking) {
-          this.currentHighlightIndex = index;
-          this.onTextHighlight?.(this.textToHighlight, index);
-        }
-      }, currentTime);
+      this.chunkedUtterances.push(utterance);
+    }
+    
+    // Setup event handlers for the first utterance
+    if (this.chunkedUtterances.length > 0) {
+      this.setupUtteranceEvents(this.chunkedUtterances[0]);
+      this.isSpeaking = true;
       
-      this.highlightTimeouts.push(timeout);
-      currentTime += wordDelay;
-    });
+      // Set up text highlighting
+      const highlightResult = setupTextHighlighting(
+        text, 
+        language, 
+        rate,
+        this.isSpeaking,
+        this.onTextHighlight
+      );
+      this.highlightTimeouts = highlightResult.timeouts;
+      this.textToHighlight = highlightResult.textToHighlight;
+      
+      // Trigger speech start event
+      if (this.onSpeechStart) {
+        this.onSpeechStart();
+      }
+      
+      // Start speaking the first chunk
+      try {
+        window.speechSynthesis.speak(this.chunkedUtterances[0]);
+        console.log("Started speaking with voice:", this.chunkedUtterances[0].voice?.name);
+        
+        // Set up watchdog to ensure speech continues
+        this.setupWatchdog();
+      } catch (error) {
+        console.error("Error starting speech synthesis:", error);
+        if (this.onSpeechError) {
+          this.onSpeechError(error);
+        }
+      }
+    }
   }
 
   /**
-   * Clears all highlight timeouts
+   * Setup watchdog to restart if speech synthesis stops unexpectedly
    */
-  private clearHighlightTimeouts(): void {
-    this.highlightTimeouts.forEach(timeout => window.clearTimeout(timeout));
-    this.highlightTimeouts = [];
+  private setupWatchdog(): void {
+    // Clear any existing watchdog
+    if (this.watchdogInterval !== null) {
+      window.clearInterval(this.watchdogInterval);
+    }
+    
+    // Check every 3 seconds if speech synthesis is paused unexpectedly
+    this.watchdogInterval = window.setInterval(() => {
+      if (this.isSpeaking) {
+        // If paused unexpectedly, try to resume
+        if (window.speechSynthesis.paused) {
+          console.log("Detected unexpected speech pause, resuming...");
+          window.speechSynthesis.resume();
+        }
+        
+        // If somehow stopped, try to restart current chunk
+        if (!window.speechSynthesis.speaking && !window.speechSynthesis.pending) {
+          console.log("Detected unexpected speech stop, attempting recovery...");
+          if (this.currentUtteranceIndex < this.chunkedUtterances.length) {
+            try {
+              // Try to continue with current chunk
+              window.speechSynthesis.speak(this.chunkedUtterances[this.currentUtteranceIndex]);
+            } catch (error) {
+              console.error("Error in watchdog recovery:", error);
+            }
+          }
+        }
+      } else {
+        // Clear watchdog if no longer speaking
+        if (this.watchdogInterval !== null) {
+          window.clearInterval(this.watchdogInterval);
+          this.watchdogInterval = null;
+        }
+      }
+    }, 3000);
+  }
+
+  /**
+   * Setup event handlers for an utterance with improved error handling
+   */
+  private setupUtteranceEvents(utterance: SpeechSynthesisUtterance): void {
+    const currentIndex = this.currentUtteranceIndex;
+    
+    // When a chunk finishes, start the next one
+    utterance.onend = () => {
+      // Only proceed if we're still in speaking mode and this is the current utterance
+      if (!this.isSpeaking || currentIndex !== this.currentUtteranceIndex) {
+        return;
+      }
+      
+      this.currentUtteranceIndex++;
+      
+      // If there are more chunks, speak the next one
+      if (this.currentUtteranceIndex < this.chunkedUtterances.length) {
+        const nextUtterance = this.chunkedUtterances[this.currentUtteranceIndex];
+        this.setupUtteranceEvents(nextUtterance);
+        
+        // Add a small pause between chunks for more natural speech
+        setTimeout(() => {
+          if (this.isSpeaking) {
+            try {
+              window.speechSynthesis.speak(nextUtterance);
+            } catch (error) {
+              console.error("Error speaking next chunk:", error);
+              this.handleSpeechError(error, this.currentUtteranceIndex);
+            }
+          }
+        }, 300);
+      } else {
+        // All chunks finished
+        this.isSpeaking = false;
+        
+        // Clear highlight timeouts
+        clearHighlightTimeouts(this.highlightTimeouts);
+        this.highlightTimeouts = [];
+        
+        // Clear watchdog
+        if (this.watchdogInterval !== null) {
+          window.clearInterval(this.watchdogInterval);
+          this.watchdogInterval = null;
+        }
+        
+        // Trigger speech end event
+        if (this.onSpeechEnd) {
+          this.onSpeechEnd();
+        }
+      }
+    };
+    
+    // Handle errors with improved recovery logic
+    utterance.onerror = (event) => {
+      this.handleSpeechError(event, currentIndex);
+    };
+  }
+
+  /**
+   * Handle speech synthesis errors with retry logic
+   */
+  private handleSpeechError(error: any, utteranceIndex: number): void {
+    console.error("Speech synthesis error:", error);
+    
+    // If this is not the last utterance and speaking is still active, try to continue
+    if (this.isSpeaking && utteranceIndex < this.chunkedUtterances.length - 1) {
+      console.log(`Attempting to continue with next chunk after error`);
+      this.currentUtteranceIndex = utteranceIndex + 1;
+      const nextUtterance = this.chunkedUtterances[this.currentUtteranceIndex];
+      this.setupUtteranceEvents(nextUtterance);
+      
+      // Brief delay before trying next chunk
+      setTimeout(() => {
+        if (this.isSpeaking) {
+          try {
+            window.speechSynthesis.speak(nextUtterance);
+          } catch (retryError) {
+            console.error("Error in error recovery:", retryError);
+            // If retry failed, report the error and stop
+            this.stop();
+            if (this.onSpeechError) {
+              this.onSpeechError(retryError);
+            }
+          }
+        }
+      }, 500);
+    } else {
+      // Cannot continue, report error
+      this.isSpeaking = false;
+      
+      // Trigger error event
+      if (this.onSpeechError) {
+        this.onSpeechError(error);
+      }
+    }
   }
 
   /**
@@ -243,7 +308,14 @@ class SimplifiedSpeechService {
     this.utterance = null;
     
     // Clear highlights
-    this.clearHighlightTimeouts();
+    clearHighlightTimeouts(this.highlightTimeouts);
+    this.highlightTimeouts = [];
+    
+    // Clear watchdog
+    if (this.watchdogInterval !== null) {
+      window.clearInterval(this.watchdogInterval);
+      this.watchdogInterval = null;
+    }
   }
 
   /**
@@ -256,7 +328,8 @@ class SimplifiedSpeechService {
     this.onSpeechEnd = null;
     this.onSpeechError = null;
     this.onTextHighlight = null;
-    this.clearHighlightTimeouts();
+    clearHighlightTimeouts(this.highlightTimeouts);
+    this.highlightTimeouts = [];
   }
 }
 

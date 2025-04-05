@@ -1,25 +1,12 @@
 
+import { INDIC_VOICE_MAPPING } from '../utils/voiceUtils';
+import { setupTextHighlighting, clearHighlightTimeouts } from '../utils/highlightUtils';
+
 /**
  * Service to handle text-to-speech specifically for Indic languages
  * using AI4Bharat's TTS API
  */
 class IndicTTSService {
-  // Voice mapping for different languages
-  private static readonly VOICE_MAPPING = {
-    'kn-IN': {
-      gender: 'female',
-      name: 'Kaveri', // Kannada voice
-      service: 'ai4bharat/indic-tts-dravidian--gpu-t4',
-      langCode: 'kn'
-    },
-    'bn-IN': {
-      gender: 'female',
-      name: 'Mitra', // Bengali voice
-      service: 'ai4bharat/indic-tts--gpu-t4',
-      langCode: 'bn'
-    }
-  };
-  
   private audio: HTMLAudioElement | null = null;
   private onStartCallback: (() => void) | null = null;
   private onEndCallback: (() => void) | null = null;
@@ -60,14 +47,21 @@ class IndicTTSService {
         this.onStartCallback();
       }
       
-      const langConfig = IndicTTSService.VOICE_MAPPING[language as 'kn-IN' | 'bn-IN'];
+      const langConfig = INDIC_VOICE_MAPPING[language as 'kn-IN' | 'bn-IN'];
       
       console.log(`Using AI4Bharat Indic-TTS for ${language} with voice: ${langConfig.name}`);
       
       this.isSpeaking = true;
       
       // Setup more precise text highlighting with proper timing for Indic scripts
-      this.setupTextHighlighting(text, language);
+      const highlightResult = setupTextHighlighting(
+        text, 
+        language, 
+        0.8,  // Slower rate for better syllable matching 
+        this.isSpeaking,
+        this.onTextHighlightCallback
+      );
+      this.highlightTimeouts = highlightResult.timeouts;
       
       // Create audio element to play the synthesized speech
       const audio = new Audio();
@@ -91,7 +85,7 @@ class IndicTTSService {
         return false;
       };
       
-      // In this implementation, we'll simulate API usage with browser TTS
+      // In this implementation, we're simulating API usage with browser TTS
       // For Kannada and Bengali, we'll use a specific voice if available
       
       const utterance = new SpeechSynthesisUtterance(text);
@@ -160,41 +154,6 @@ class IndicTTSService {
   }
 
   /**
-   * Set up text highlighting with proper timing for Indic languages
-   */
-  private setupTextHighlighting(text: string, language: string): void {
-    if (!this.onTextHighlightCallback) return;
-    
-    // Clean any existing highlight timeouts
-    this.clearHighlightTimeouts();
-    
-    // Split text into words
-    const words = text.split(/\s+/);
-    
-    // Calculate timing based on language
-    // Indic languages need slower highlighting due to complex syllables
-    const avgWordsPerMinute = language === 'kn-IN' ? 70 : language === 'bn-IN' ? 75 : 90;
-    const msPerWord = 60000 / avgWordsPerMinute;
-    
-    // Set up timeouts for each word
-    let currentTime = 100; // Start with minimal delay
-    
-    words.forEach((word, index) => {
-      // Longer words in complex scripts need more time
-      let wordDelay = msPerWord * (1 + 0.4 * (word.length / 3));
-      
-      const timeout = window.setTimeout(() => {
-        if (this.isSpeaking) {
-          this.onTextHighlightCallback?.(text, index);
-        }
-      }, currentTime);
-      
-      this.highlightTimeouts.push(timeout);
-      currentTime += wordDelay;
-    });
-  }
-
-  /**
    * Stops the speech and cleans up resources
    */
   public stop(): void {
@@ -208,14 +167,7 @@ class IndicTTSService {
     }
     
     this.isSpeaking = false;
-    this.clearHighlightTimeouts();
-  }
-
-  /**
-   * Clears all highlight timeouts
-   */
-  private clearHighlightTimeouts(): void {
-    this.highlightTimeouts.forEach(timeout => window.clearTimeout(timeout));
+    clearHighlightTimeouts(this.highlightTimeouts);
     this.highlightTimeouts = [];
   }
 

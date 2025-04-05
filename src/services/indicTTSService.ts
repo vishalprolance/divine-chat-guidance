@@ -87,54 +87,90 @@ class IndicTTSService {
         return false;
       };
 
-      // In a real implementation, we would fetch from AI4Bharat's API
-      // For this demo, we're simulating with browser TTS
+      // In a real implementation, we'd fetch from AI4Bharat's API
+      // For this simulation, we'll create a specialized fallback that really
+      // tries to avoid using Hindi voices for these languages
+      
+      // Try to use the browser TTS but with highly specialized voice selection
       try {
-        // Attempt to use the real API simulation
         const langCode = language === 'kn-IN' ? 'kn' : 'bn';
         const gender = langConfig.gender || 'female';
         const voiceName = language === 'kn-IN' ? 'Kaveri' : 'Mitra';
         
         console.log(`Using ${voiceName} (${gender}) for ${language}`);
         
-        // Simulate more accurate timings for these languages
+        // Use more accurate timings for these languages
         const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = language;
-        utterance.rate = 0.7; // Slower rate for better clarity with complex scripts
+        utterance.lang = language; // Use the full language code like 'kn-IN'
+        utterance.rate = 0.65; // Even slower rate for better clarity with complex scripts
         
-        // Set the voice for the utterance - try to find language-specific voice
+        // Attempt to find a proper voice that matches the language exactly
         const voices = window.speechSynthesis.getVoices();
         
-        // First try exact language match
+        // IMPORTANT: Prioritize exact language match for Indic scripts
         let indicVoice = voices.find(voice => 
           voice.lang === language || 
-          (language === 'kn-IN' && voice.name.toLowerCase().includes('kannada')) ||
-          (language === 'bn-IN' && (voice.name.toLowerCase().includes('bengali') || voice.name.toLowerCase().includes('bangla')))
+          voice.lang === langCode
         );
         
-        // If no exact match, try Hindi as a fallback for Indic scripts
+        // If no exact match, try name-based match (some browsers list voice by name not language)
         if (!indicVoice) {
           indicVoice = voices.find(voice => 
-            voice.lang === 'hi-IN' || 
-            voice.name.toLowerCase().includes('hindi') ||
-            voice.name.toLowerCase().includes('indian')
+            (language === 'kn-IN' && (
+              voice.name.toLowerCase().includes('kannada') || 
+              voice.name.toLowerCase().includes(langCode)
+            )) ||
+            (language === 'bn-IN' && (
+              voice.name.toLowerCase().includes('bengali') || 
+              voice.name.toLowerCase().includes('bangla') ||
+              voice.name.toLowerCase().includes(langCode)
+            ))
           );
         }
         
-        // If still no match, use any available voice but avoid German
+        // Explicitly avoid Hindi voice if possible for these languages
+        // since they sound very different - only use as last resort
         if (!indicVoice) {
-          indicVoice = voices.find(voice => !voice.name.toLowerCase().includes('deutsch'));
+          // Try ANY other Indian voice before Hindi
+          indicVoice = voices.find(voice => 
+            voice.lang.endsWith('-IN') && 
+            !voice.name.toLowerCase().includes('hindi') &&
+            voice.lang !== 'hi-IN'
+          );
+          
+          // If still no match, use any non-German voice with neutral accent
+          if (!indicVoice) {
+            const neutralVoices = voices.filter(v => 
+              !v.name.toLowerCase().includes('deutsch') &&
+              !v.name.toLowerCase().includes('german') &&
+              !v.lang.startsWith('de')
+            );
+            
+            if (neutralVoices.length > 0) {
+              // Prefer female voices as they tend to be clearer for Indic languages
+              indicVoice = neutralVoices.find(v => v.name.toLowerCase().includes('female')) || neutralVoices[0];
+            }
+          }
+        }
+        
+        // Only use Hindi as absolute last resort
+        if (!indicVoice) {
+          console.log("No ideal voice found, using Hindi as last resort");
+          indicVoice = voices.find(voice => 
+            voice.lang === 'hi-IN' || 
+            voice.name.toLowerCase().includes('hindi')
+          );
         }
         
         if (indicVoice) {
           utterance.voice = indicVoice;
-          console.log(`Using voice: ${indicVoice.name} for ${language}`);
+          console.log(`Using voice: ${indicVoice.name} (${indicVoice.lang}) for ${language}`);
         } else {
-          console.log(`No specific voice found for ${language}, using default`);
+          console.log(`No specific voice found for ${language}, using default system voice`);
         }
         
         utterance.onstart = () => {
-          console.log(`AI4Bharat ${voiceName} voice started speaking`);
+          console.log(`AI4Bharat simulation (${voiceName}) started speaking`);
         };
         
         utterance.onend = () => {

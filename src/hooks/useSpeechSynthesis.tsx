@@ -71,12 +71,15 @@ export function useSpeechSynthesis() {
     setCurrentSpeakingMessage(text);
     setLastSpokenLanguage(language);
     
-    // Special debug log for Kannada and Bengali
+    // Enhanced logging specifically for Kannada and Bengali
     if (['kn-IN', 'bn-IN'].includes(language)) {
       console.log(`Speaking in ${language === 'kn-IN' ? 'Kannada' : 'Bengali'} using AI4Bharat TTS service when available`);
+      // Force use AI4Bharat TTS for these languages
+      speechServiceRef.current.speak(text, language, true);
+    } else {
+      // For other languages, use the regular speak method
+      speechServiceRef.current.speak(text, language);
     }
-    
-    speechServiceRef.current.speak(text, language);
   };
 
   const stopSpeaking = () => {

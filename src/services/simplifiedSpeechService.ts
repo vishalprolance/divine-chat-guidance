@@ -57,8 +57,11 @@ class SimplifiedSpeechService {
   /**
    * Speaks the given text in the specified language
    * Uses AI4Bharat for Indic languages and browser TTS for others
+   * @param text The text to speak
+   * @param language The language code (e.g., 'kn-IN')
+   * @param forceIndicTTS Whether to force the use of IndicTTS (for Kannada and Bengali)
    */
-  public async speak(text: string, language: string): Promise<void> {
+  public async speak(text: string, language: string, forceIndicTTS: boolean = false): Promise<void> {
     if (!text.trim()) return;
     
     console.log(`Speaking text in ${language}:`, text.substring(0, 50) + (text.length > 50 ? '...' : ''));
@@ -67,10 +70,20 @@ class SimplifiedSpeechService {
     this.stop();
     
     // For Kannada and Bengali, use AI4Bharat service
-    if (['kn-IN', 'bn-IN'].includes(language)) {
+    if (['kn-IN', 'bn-IN'].includes(language) || forceIndicTTS) {
       console.log(`Using AI4Bharat for ${language}`);
       const indicSuccess = await this.indicService.speak(text, language);
+      
+      // Only if explicitly told to force IndicTTS and it failed, try again
+      if (!indicSuccess && forceIndicTTS) {
+        console.warn(`AI4Bharat failed for ${language} on first attempt, trying again...`);
+        const retrySuccess = await this.indicService.speak(text, language);
+        if (retrySuccess) return;
+      }
+      
+      // If IndicTTS succeeded, return early
       if (indicSuccess) return;
+      
       console.warn(`AI4Bharat failed for ${language}, falling back to browser TTS`);
     }
     

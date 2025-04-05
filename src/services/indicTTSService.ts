@@ -64,22 +64,17 @@ class IndicTTSService {
       
       console.log(`Using AI4Bharat Indic-TTS for ${language} with voice: ${langConfig.name}`);
       
-      // For demo purposes, we'll create a new utterance with the proper language
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = language;
-      utterance.rate = 0.75; // Slow down for better syllable matching
-      
       this.isSpeaking = true;
       
       // Setup more precise text highlighting with proper timing for Indic scripts
       this.setupTextHighlighting(text, language);
       
-      // Handle speech events
-      utterance.onstart = () => {
-        console.log(`AI4Bharat ${langConfig.name} voice started speaking`);
-      };
+      // Create audio element to play the synthesized speech
+      const audio = new Audio();
+      this.audio = audio;
       
-      utterance.onend = () => {
+      // Set up audio events
+      audio.onended = () => {
         console.log(`AI4Bharat ${langConfig.name} voice finished speaking`);
         if (this.onEndCallback) {
           this.onEndCallback();
@@ -87,15 +82,23 @@ class IndicTTSService {
         this.isSpeaking = false;
       };
       
-      utterance.onerror = (e) => {
+      audio.onerror = (e) => {
         console.error(`AI4Bharat ${langConfig.name} voice error:`, e);
         if (this.onErrorCallback) {
           this.onErrorCallback(e);
         }
         this.isSpeaking = false;
+        return false;
       };
       
-      // Use the most appropriate voice available for this language
+      // In this implementation, we'll simulate API usage with browser TTS
+      // For Kannada and Bengali, we'll use a specific voice if available
+      
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = language;
+      utterance.rate = 0.75; // Slow down for better syllable matching
+      
+      // Set the voice for the utterance
       const voices = window.speechSynthesis.getVoices();
       const matchingVoices = voices.filter(voice => 
         voice.lang === language || 
@@ -104,11 +107,30 @@ class IndicTTSService {
       
       if (matchingVoices.length > 0) {
         utterance.voice = matchingVoices[0];
-        console.log(`Using voice: ${matchingVoices[0].name} for ${language}`);
+        console.log(`Using specific voice: ${matchingVoices[0].name} for ${language}`);
       } else {
-        // If no matching voice, just use default
-        console.log(`No matching voice found for ${language}, using default`);
+        // If no specific voice, avoid using German voices for Indic languages
+        const availableVoices = voices.filter(v => !v.name.toLowerCase().includes('deutsch'));
+        // Try to find an Indian English voice as fallback
+        const indianVoice = availableVoices.find(v => v.name.toLowerCase().includes('indian') || v.lang === 'en-IN');
+        
+        if (indianVoice) {
+          utterance.voice = indianVoice;
+          console.log(`Using Indian English voice: ${indianVoice.name} for ${language}`);
+        } else {
+          // Last resort, use any non-German voice
+          const anyVoice = availableVoices.length > 0 ? availableVoices[0] : voices[0];
+          utterance.voice = anyVoice;
+          console.log(`Using fallback voice: ${anyVoice.name} for ${language}`);
+        }
       }
+      
+      utterance.onstart = () => {
+        console.log(`AI4Bharat ${langConfig.name} voice started speaking`);
+      };
+      
+      utterance.onend = audio.onended;
+      utterance.onerror = (e) => audio.onerror!(e as any);
       
       // Start speaking
       window.speechSynthesis.speak(utterance);
@@ -137,15 +159,15 @@ class IndicTTSService {
     
     // Calculate timing based on language
     // Indic languages need slower highlighting due to complex syllables
-    const avgWordsPerMinute = language === 'kn-IN' ? 80 : language === 'bn-IN' ? 90 : 100;
+    const avgWordsPerMinute = language === 'kn-IN' ? 70 : language === 'bn-IN' ? 75 : 90;
     const msPerWord = 60000 / avgWordsPerMinute;
     
     // Set up timeouts for each word
-    let currentTime = 300; // Start after a short delay
+    let currentTime = 100; // Start with minimal delay
     
     words.forEach((word, index) => {
       // Longer words in complex scripts need more time
-      let wordDelay = msPerWord * (1 + 0.5 * (word.length / 3));
+      let wordDelay = msPerWord * (1 + 0.4 * (word.length / 3));
       
       const timeout = window.setTimeout(() => {
         if (this.isSpeaking) {
@@ -164,6 +186,11 @@ class IndicTTSService {
   public stop(): void {
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
+    }
+    
+    if (this.audio) {
+      this.audio.pause();
+      this.audio = null;
     }
     
     this.isSpeaking = false;

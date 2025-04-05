@@ -30,17 +30,59 @@ const MessageList = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const highlightedWordRef = useRef<HTMLSpanElement>(null);
+  const lastHighlightedIndex = useRef<number | null>(null);
+  const isUserScrollingRef = useRef<boolean>(false);
+  const userScrollTimerRef = useRef<number | null>(null);
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
-    if (messagesEndRef.current) {
+    if (messagesEndRef.current && !isUserScrollingRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages, transcript, isProcessing]);
 
+  // Track user scrolling
+  useEffect(() => {
+    const scrollContainer = scrollAreaRef.current;
+    
+    if (!scrollContainer) return;
+    
+    const handleScroll = () => {
+      // User is manually scrolling
+      isUserScrollingRef.current = true;
+      
+      // Reset the timer
+      if (userScrollTimerRef.current) {
+        window.clearTimeout(userScrollTimerRef.current);
+      }
+      
+      // After 5 seconds of no scrolling, allow auto-scroll again
+      userScrollTimerRef.current = window.setTimeout(() => {
+        isUserScrollingRef.current = false;
+      }, 5000);
+    };
+    
+    scrollContainer.addEventListener('touchmove', handleScroll);
+    scrollContainer.addEventListener('wheel', handleScroll);
+    
+    return () => {
+      scrollContainer.removeEventListener('touchmove', handleScroll);
+      scrollContainer.removeEventListener('wheel', handleScroll);
+      if (userScrollTimerRef.current) {
+        window.clearTimeout(userScrollTimerRef.current);
+      }
+    };
+  }, []);
+
   // Auto-scroll to the highlighted word if it's outside viewport
   useEffect(() => {
-    if (highlightedWordRef.current && highlightedWordIndex !== null) {
+    if (
+      highlightedWordRef.current && 
+      highlightedWordIndex !== null && 
+      (highlightedWordIndex !== lastHighlightedIndex.current) &&
+      !isUserScrollingRef.current
+    ) {
+      lastHighlightedIndex.current = highlightedWordIndex;
       const wordElement = highlightedWordRef.current;
       const container = scrollAreaRef.current;
       
@@ -48,8 +90,12 @@ const MessageList = ({
         const containerRect = container.getBoundingClientRect();
         const wordRect = wordElement.getBoundingClientRect();
         
-        // Check if word is outside the visible area
-        if (wordRect.bottom > containerRect.bottom || wordRect.top < containerRect.top) {
+        // Check if word is outside the visible area or close to edges
+        const isOutsideViewport = 
+          wordRect.bottom > containerRect.bottom - 50 || 
+          wordRect.top < containerRect.top + 50;
+        
+        if (isOutsideViewport) {
           wordElement.scrollIntoView({
             behavior: 'smooth',
             block: 'center'
@@ -81,7 +127,7 @@ const MessageList = ({
               key={`word-${index}`}
               ref={index === highlightedWordIndex ? highlightedWordRef : null} 
               className={index === highlightedWordIndex ? 
-                'highlighted-word bg-purple-200 dark:bg-purple-800 rounded px-1 py-0.5' : 
+                'highlighted-word' : 
                 ''}
             >
               {word}
@@ -192,24 +238,23 @@ const MessageList = ({
         }
         
         .highlighted-word {
-          animation: pulse 1s infinite;
-          font-weight: 500;
-          transition: all 0.2s ease;
-          background-color: rgba(144, 97, 249, 0.3);
+          background-color: rgba(144, 97, 249, 0.35);
           border-radius: 4px;
           padding: 0 2px;
-          box-shadow: 0 0 4px rgba(144, 97, 249, 0.5);
+          display: inline-block;
+          transition: all 0.2s ease;
         }
         
         .dark .highlighted-word {
           background-color: rgba(144, 97, 249, 0.5);
-          box-shadow: 0 0 4px rgba(144, 97, 249, 0.7);
         }
         
-        @keyframes pulse {
-          0% { transform: scale(1); }
-          50% { transform: scale(1.05); }
-          100% { transform: scale(1); }
+        /* Specific styles for Kannada and Bengali */
+        .kn-IN .highlighted-word, 
+        .bn-IN .highlighted-word {
+          background-color: rgba(144, 97, 249, 0.5);
+          padding: 0 3px;
+          margin: 0 1px;
         }
         
         @media (max-width: 640px) {

@@ -1,3 +1,4 @@
+
 #root {
   margin: 0 auto;
   text-align: center;
@@ -104,27 +105,30 @@ body {
   animation: divine-fade-in 0.5s ease-out;
 }
 
-/* Enhanced text highlight animation with better visibility for Indic scripts */
-@keyframes highlight-pulse {
-  0% { opacity: 0.8; box-shadow: 0 0 2px rgba(144, 97, 249, 0.2); }
-  50% { opacity: 1; box-shadow: 0 0 8px rgba(144, 97, 249, 0.5); }
-  100% { opacity: 0.8; box-shadow: 0 0 2px rgba(144, 97, 249, 0.2); }
-}
-
+/* Enhanced text highlight styles - no blinking */
 .highlighted-word {
-  animation: highlight-pulse 1s infinite;
-  background-color: rgba(144, 97, 249, 0.3);
+  background-color: rgba(144, 97, 249, 0.35);
   border-radius: 4px;
   padding: 0 2px;
   display: inline-block;
+  transition: background-color 0.15s ease-in-out;
 }
 
 /* For Indic scripts, make highlighting more visible */
 .kn-IN .highlighted-word, 
 .bn-IN .highlighted-word {
-  background-color: rgba(144, 97, 249, 0.4);
-  box-shadow: 0 0 4px rgba(144, 97, 249, 0.5);
+  background-color: rgba(144, 97, 249, 0.5);
+  box-shadow: 0 0 4px rgba(144, 97, 249, 0.3);
   padding: 0 3px;
+  margin: 0 1px;
+}
+
+.sa-IN .highlighted-word,
+.mr-IN .highlighted-word,
+.hi-IN .highlighted-word {
+  background-color: rgba(144, 97, 249, 0.45);
+  box-shadow: 0 0 2px rgba(144, 97, 249, 0.25);
+  padding: 0 2px;
 }
 
 /* Improved custom scrollbar for better scrolling experience */
@@ -150,4 +154,16 @@ body {
 
 .dark .custom-scrollbar::-webkit-scrollbar-thumb {
   background-color: rgba(155, 155, 155, 0.3);
+}
+
+/* Mobile specific improvements */
+@media (max-width: 768px) {
+  .custom-scrollbar {
+    -webkit-overflow-scrolling: touch !important;
+    scroll-padding-bottom: 60px;
+  }
+  
+  .highlighted-word {
+    transition: none; /* Disable transitions on mobile for better performance */
+  }
 }

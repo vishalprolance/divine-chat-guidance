@@ -60,7 +60,7 @@ class SimplifiedSpeechService {
     // Stop any existing speech
     this.stop();
     
-    // For Kannada and Bengali, ALWAYS use AI4Bharat service
+    // For Kannada and Bengali, use AI4Bharat service
     if (['kn-IN', 'bn-IN'].includes(language)) {
       console.log(`Using AI4Bharat for ${language}`);
       const indicSuccess = await this.indicService.speak(text, language);
@@ -90,26 +90,39 @@ class SimplifiedSpeechService {
     this.utterance = utterance;
     
     // Adjust speech parameters based on language
-    let rate = 1.0;
-    if (['hi-IN', 'mr-IN'].includes(language)) {
-      rate = 0.85;
-    } else if (['sa-IN'].includes(language)) {
-      rate = 0.8;
-    } else if (['kn-IN', 'bn-IN'].includes(language)) {
-      // Even slower for complex scripts
-      rate = 0.75;
-    } else {
-      rate = 0.9;
-    }
+    let rate = 0.9; // Default slower rate for better sync
     utterance.rate = rate;
     utterance.pitch = 1.0;
     
     // Find the best voice
     const voices = window.speechSynthesis.getVoices();
-    const preferredVoice = voices.find(voice => voice.lang === language) || 
-                          voices.find(voice => voice.lang.startsWith(language.split('-')[0])) ||
-                          voices.find(voice => voice.lang.includes('en')) ||
-                          voices[0];
+    let preferredVoice = null;
+    
+    // Language-specific voice selection
+    switch (language) {
+      case 'hi-IN':
+        preferredVoice = voices.find(v => v.lang === 'hi-IN' || v.name.toLowerCase().includes('hindi'));
+        break;
+      case 'mr-IN':
+        preferredVoice = voices.find(v => v.lang === 'mr-IN' || v.name.toLowerCase().includes('marathi'));
+        if (!preferredVoice) {
+          // Fallback to Hindi for Marathi if no Marathi voice
+          preferredVoice = voices.find(v => v.lang === 'hi-IN' || v.name.toLowerCase().includes('hindi'));
+        }
+        break;
+      case 'sa-IN':
+        preferredVoice = voices.find(v => v.lang === 'sa-IN' || v.name.toLowerCase().includes('sanskrit'));
+        if (!preferredVoice) {
+          // Fallback to Hindi for Sanskrit if no Sanskrit voice
+          preferredVoice = voices.find(v => v.lang === 'hi-IN' || v.name.toLowerCase().includes('hindi'));
+        }
+        break;
+      default:
+        preferredVoice = voices.find(voice => voice.lang === language) || 
+                        voices.find(voice => voice.lang.startsWith(language.split('-')[0])) ||
+                        voices.find(voice => voice.lang.includes('en')) ||
+                        voices[0];
+    }
     
     if (preferredVoice) {
       utterance.voice = preferredVoice;
@@ -161,22 +174,23 @@ class SimplifiedSpeechService {
     // Split text into words
     const words = text.split(/\s+/);
     
-    // Calculate time per word based on language complexity
+    // Calculate time per word based on language complexity and reading speed
+    // Slower words per minute = longer time per word for better sync
     let avgWordsPerMinute;
     if (language === 'kn-IN') {
-      avgWordsPerMinute = 80; // Slowest for Kannada
+      avgWordsPerMinute = 70; // Slowest for Kannada
     } else if (language === 'bn-IN') {
-      avgWordsPerMinute = 90; // Slow for Bengali
+      avgWordsPerMinute = 75; // Slow for Bengali
     } else if (['hi-IN', 'mr-IN', 'sa-IN'].includes(language)) {
-      avgWordsPerMinute = 110; // Medium for other Indic languages
+      avgWordsPerMinute = 90; // Medium for other Indic languages
     } else {
-      avgWordsPerMinute = 140; // Default for Latin script
+      avgWordsPerMinute = 120; // Default for Latin script
     }
     
-    const msPerWord = 60000 / avgWordsPerMinute / (rate || 0.9);
+    const msPerWord = 60000 / avgWordsPerMinute / rate;
     
-    // Set up timeouts for each word
-    let currentTime = 300; // Start after a short delay
+    // Set up timeouts for each word with progressive timing
+    let currentTime = 100; // Start almost immediately
     
     words.forEach((word, index) => {
       // Calculate delay based on word length and language
@@ -184,13 +198,13 @@ class SimplifiedSpeechService {
       
       if (['kn-IN', 'bn-IN'].includes(language)) {
         // Kannada and Bengali words need more time per character
-        wordDelay = msPerWord * (1 + 0.8 * (word.length / 4));
+        wordDelay = msPerWord * (1 + 0.5 * (word.length / 3));
       } else if (['hi-IN', 'mr-IN', 'sa-IN'].includes(language)) {
         // Hindi, Marathi and Sanskrit
-        wordDelay = msPerWord * (1 + 0.6 * (word.length / 5));
+        wordDelay = msPerWord * (1 + 0.3 * (word.length / 4));
       } else {
         // Latin script
-        wordDelay = msPerWord * (0.8 + 0.5 * (word.length / 6));
+        wordDelay = msPerWord * (0.8 + 0.2 * (word.length / 5));
       }
       
       const timeout = window.setTimeout(() => {

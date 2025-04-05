@@ -29,7 +29,7 @@ const Chat = () => {
           <ThemeToggle />
         </div>
         
-        <div className="flex-grow flex flex-col overflow-hidden mb-2 overscroll-none touch-auto" 
+        <div className="flex-grow flex flex-col overflow-hidden mb-2 overscroll-none touch-auto relative" 
              style={{ 
                WebkitOverflowScrolling: 'touch',
                overscrollBehavior: 'contain',

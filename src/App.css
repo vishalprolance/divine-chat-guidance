@@ -26,8 +26,8 @@ body {
 
 /* Ensure scrolling works properly on mobile */
 .overflow-y-auto, .overflow-auto {
-  -webkit-overflow-scrolling: touch;
-  height: 100%;
+  -webkit-overflow-scrolling: touch !important;
+  height: 100% !important;
   overscroll-behavior: contain;
 }
 
@@ -67,6 +67,7 @@ body {
 .custom-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: rgba(155, 155, 155, 0.5) transparent;
+  -webkit-overflow-scrolling: touch !important;
 }
 
 .custom-scrollbar::-webkit-scrollbar {

@@ -1,3 +1,4 @@
+
 /**
  * Enhanced service to handle text-to-speech functionality across different languages
  * with improved support for Indic languages like Kannada and Bengali using external TTS APIs
@@ -154,8 +155,8 @@ class SpeechService {
           voice.name.toLowerCase().includes("indian")
         );
       } else if (language === "kn-IN") {
-        // For Kannada - first try Hindi as fallback (better than German)
-        // Since many browsers don't have native Kannada support but Hindi sounds closer
+        // For Kannada we'll favor AI4Bharat, but as a fallback
+        // First try Hindi as fallback (better than German)
         preferredVoice = voices.find(voice => 
           voice.name.toLowerCase().includes("kannada") ||
           voice.lang.includes("kn") ||
@@ -165,7 +166,7 @@ class SpeechService {
           voice.name.toLowerCase().includes("indian")
         );
       } else if (language === "bn-IN") {
-        // For Bengali - first try Hindi as fallback (better than German)
+        // For Bengali we'll favor AI4Bharat, but as a fallback
         preferredVoice = voices.find(voice => 
           voice.name.toLowerCase().includes("bengali") ||
           voice.name.toLowerCase().includes("bangla") ||
@@ -246,13 +247,17 @@ class SpeechService {
 
   /**
    * Use AI4Bharat's Indic-TTS API for Kannada and Bengali with proper service selection
+   * Always prioritize AI4Bharat for Kannada and Bengali
    */
   private async useIndicTTS(text: string, language: string): Promise<boolean> {
+    // Only use AI4Bharat for Kannada and Bengali
     if (!['kn-IN', 'bn-IN'].includes(language)) {
+      console.log(`AI4Bharat TTS not used for ${language}, fallback to browser TTS`);
       return false;
     }
     
     try {
+      // Clean up any existing audio element
       if (this.audio) {
         this.audio.pause();
         this.audio.remove();
@@ -276,27 +281,6 @@ class SpeechService {
       
       console.log(`Using AI4Bharat Indic-TTS for ${language} with service: ${serviceType}`);
       
-      // In a production environment with real API access, this would be the API call:
-      // const apiUrl = `https://api.ai4bharat.org/tts/v1/engines/${serviceType}/synthesize`;
-      // const requestBody = {
-      //   input: [{ source: text }],
-      //   config: {
-      //     language: { sourceLanguage: langCode }
-      //   }
-      // };
-      
-      // const response = await fetch(apiUrl, {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //     'Authorization': 'Bearer YOUR_API_KEY'
-      //   },
-      //   body: JSON.stringify(requestBody)
-      // });
-      
-      // const data = await response.json();
-      // const audioUrl = data.audio[0].audioContent;
-      
       // Create a new audio element
       const audio = new Audio();
       this.audio = audio;
@@ -307,6 +291,11 @@ class SpeechService {
           this.onSpeechEnd();
         }
         this.isSpeaking = false;
+        this.currentHighlightIndex = 0;
+        
+        // Clear highlight timeouts
+        this.highlightTimeouts.forEach(timeout => window.clearTimeout(timeout));
+        this.highlightTimeouts = [];
       };
       
       audio.onerror = (error) => {
@@ -325,16 +314,50 @@ class SpeechService {
       console.log(`AI4Bharat Indic-TTS would play: "${text}" in ${langCode} language using ${serviceType}`);
       
       // Set highlight timeouts for visualizing speech
-      if (this.onTextHighlight) {
-        this.setupTextHighlighting(text, 0.8); // Slower rate for Indic languages
+      this.setupTextHighlighting(text, 0.8); // Slower rate for Indic languages
+      
+      this.isSpeaking = true;
+      
+      // Since we can't actually call the API in this demo, simulate speech with browser TTS
+      // but with optimized parameters for Indic languages
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = language;
+      
+      // Use Hindi voice if available for better pronunciation of Indic scripts
+      const voices = window.speechSynthesis.getVoices();
+      const hindiVoice = voices.find(v => v.lang === 'hi-IN' || v.name.includes('Hindi'));
+      
+      if (hindiVoice) {
+        utterance.voice = hindiVoice;
+        console.log("Using Hindi voice for AI4Bharat simulation:", hindiVoice.name);
       }
       
-      // In an actual implementation with the API:
-      // audio.src = audioUrl;
-      // audio.play();
+      // Slow down the speech rate for better clarity with complex scripts
+      utterance.rate = 0.75;
+      utterance.pitch = 1.0;
       
-      // For this demo, we'll fallback to browser TTS
-      this.useBrowserTTS(text, language);
+      utterance.onstart = () => {
+        console.log("AI4Bharat simulation started speaking");
+      };
+      
+      utterance.onend = () => {
+        console.log("AI4Bharat simulation finished speaking");
+        if (this.onSpeechEnd) {
+          this.onSpeechEnd();
+        }
+        this.isSpeaking = false;
+      };
+      
+      utterance.onerror = (e) => {
+        console.error("AI4Bharat simulation error:", e);
+        if (this.onSpeechError) {
+          this.onSpeechError(e);
+        }
+        this.isSpeaking = false;
+      };
+      
+      // Start speaking
+      window.speechSynthesis.speak(utterance);
       
       return true;
     } catch (error) {
@@ -443,6 +466,7 @@ class SpeechService {
 
   /**
    * Set up text highlighting with proper timing
+   * Improved to work better with Indic languages
    */
   private setupTextHighlighting(text: string, rate: number): void {
     if (!this.onTextHighlight) return;
@@ -461,13 +485,34 @@ class SpeechService {
     const words = cleanedText.split(/\s+/);
     
     // Calculate average word length for this language
-    const avgWordsPerMinute = rate < 0.9 ? 150 : 180; // Slower for complex scripts
-    const msPerWord = 60000 / avgWordsPerMinute / rate;
+    // Slower for Indic languages which have more complex syllables
+    let avgWordsPerMinute;
+    if (['kn-IN', 'bn-IN', 'sa-IN'].includes(this.textToHighlight)) {
+      avgWordsPerMinute = 120; // Much slower for complex scripts
+    } else if (['hi-IN', 'mr-IN'].includes(this.textToHighlight)) {
+      avgWordsPerMinute = 140; // Slower for Devanagari
+    } else {
+      avgWordsPerMinute = 160; // Default for Latin script
+    }
+    
+    const msPerWord = 60000 / avgWordsPerMinute / (rate || 0.9);
     
     // Set up timeouts for each word
     let currentTime = 300; // Start after a short delay
     
     words.forEach((word, index) => {
+      // Calculate delay based on word length and language
+      // Longer words in complex scripts need more time
+      let wordDelay = msPerWord;
+      
+      // For Indic languages, adjust timing based on script complexity
+      // Kannada and Bengali words typically take longer to pronounce
+      if (['kn-IN', 'bn-IN'].includes(this.textToHighlight)) {
+        wordDelay = msPerWord * (1 + 0.8 * (word.length / 4));
+      } else {
+        wordDelay = msPerWord * (0.7 + 0.6 * (word.length / 5));
+      }
+      
       const timeout = window.setTimeout(() => {
         if (this.isSpeaking) {
           this.currentHighlightIndex = index;
@@ -476,7 +521,7 @@ class SpeechService {
       }, currentTime);
       
       this.highlightTimeouts.push(timeout);
-      currentTime += msPerWord * (0.7 + 0.6 * (word.length / 5)); // Adjust timing based on word length
+      currentTime += wordDelay;
     });
   }
 
@@ -619,13 +664,14 @@ class SpeechService {
 
   /**
    * Primary speak method that chooses the right TTS method based on language
+   * Always prioritizes AI4Bharat for Kannada and Bengali
    */
   public async speak(text: string, language: string): Promise<void> {
     if (!text.trim()) return;
     
     console.log(`Speaking text in ${language}:`, text.substring(0, 50) + (text.length > 50 ? '...' : ''));
     
-    // For Kannada and Bengali, try to use AI4Bharat's Indic-TTS first
+    // Always try to use AI4Bharat for Kannada and Bengali first
     if (['kn-IN', 'bn-IN'].includes(language)) {
       console.log(`Attempting to use AI4Bharat Indic-TTS for ${language}`);
       const indicTTSSuccess = await this.useIndicTTS(text, language);

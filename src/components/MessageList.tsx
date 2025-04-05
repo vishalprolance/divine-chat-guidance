@@ -71,7 +71,17 @@ const MessageList = ({
   };
 
   return (
-    <div className="flex-1 w-full overflow-y-auto pb-4 custom-scrollbar" style={{WebkitOverflowScrolling: 'touch'}} ref={scrollAreaRef}>
+    <div 
+      className="flex-1 w-full overflow-y-auto pb-4 custom-scrollbar" 
+      style={{
+        WebkitOverflowScrolling: 'touch',
+        height: '100%',
+        overflowY: 'auto',
+        overscrollBehavior: 'touch',
+        touchAction: 'pan-y'
+      }} 
+      ref={scrollAreaRef}
+    >
       <div className="px-4 space-y-4 pb-6">
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-gray-500 dark:text-gray-400 animate-divine-fade-in">

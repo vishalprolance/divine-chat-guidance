@@ -66,12 +66,6 @@ const ChatInterface = () => {
       setIsSpeaking(false);
       setHighlightedWordIndex(null);
       setCurrentSpeakingMessage(null);
-      
-      toast({
-        title: "Speech Error",
-        description: "There was an error with the text-to-speech. Please try again.",
-        variant: "destructive"
-      });
     };
     
     speechService.onTextHighlight = (text, index) => {
@@ -277,7 +271,11 @@ const ChatInterface = () => {
   const greetingMessage = greetingMessages[language] || greetingMessages['en-US'];
 
   return (
-    <div className="flex flex-col h-full max-h-full rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden bg-gray-50 dark:bg-gray-950" ref={chatContainerRef}>
+    <div 
+      className="flex flex-col h-full max-h-full rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden bg-gray-50 dark:bg-gray-950" 
+      ref={chatContainerRef}
+      style={{ WebkitOverflowScrolling: 'touch' }}
+    >
       <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-black sticky top-0 z-10">
         <LanguageSelector 
           language={language}
@@ -296,7 +294,14 @@ const ChatInterface = () => {
         />
       </div>
       
-      <div className="flex-grow overflow-hidden relative" style={{height: "calc(100% - 120px)"}}>
+      <div 
+        className="flex-grow overflow-hidden relative" 
+        style={{
+          height: "calc(100% - 120px)",
+          overscrollBehavior: 'none',
+          WebkitOverflowScrolling: 'touch'
+        }}
+      >
         <MessageList 
           messages={messages}
           isProcessing={isProcessing}

@@ -20,9 +20,9 @@ const LanguageSelector = ({ language, onChange, languages }: LanguageSelectorPro
         <SelectTrigger className="h-8 w-[110px] bg-transparent border-gray-300 dark:border-gray-700 text-sm">
           <SelectValue placeholder="Language" />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="max-h-[300px] overflow-y-auto">
           {languages.map((lang) => (
-            <SelectItem key={lang.code} value={lang.code} className="text-sm">
+            <SelectItem key={lang.code} value={lang.code} className="text-sm py-2">
               {lang.name}
             </SelectItem>
           ))}

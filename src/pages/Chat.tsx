@@ -8,7 +8,7 @@ import { ArrowLeft } from 'lucide-react';
 
 const Chat = () => {
   return (
-    <div className="min-h-screen flex flex-col px-2 py-2 md:px-4 md:py-4 bg-gradient-to-b from-white to-gray-50 dark:from-black dark:to-gray-950 overflow-hidden">
+    <div className="min-h-screen flex flex-col px-2 py-2 md:px-4 md:py-4 bg-gradient-to-b from-white to-gray-50 dark:from-black dark:to-gray-950 overflow-hidden overscroll-none">
       <div className="w-full max-w-3xl mx-auto flex flex-col h-[calc(100vh-16px)]">
         <div className="flex justify-between items-center mb-4 sticky top-0 z-50 bg-white/90 dark:bg-black/90 backdrop-blur-md pb-2 pt-2 rounded-lg shadow-sm">
           <div className="flex items-center gap-2">
@@ -29,7 +29,7 @@ const Chat = () => {
           <ThemeToggle />
         </div>
         
-        <div className="flex-grow flex flex-col overflow-hidden mb-2 overscroll-none">
+        <div className="flex-grow flex flex-col overflow-hidden mb-2 overscroll-none touch-auto">
           <ChatInterface />
         </div>
         

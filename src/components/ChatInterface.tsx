@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
-import SpeechService from '../services/speechService';
+import SimplifiedSpeechService from '../services/simplifiedSpeechService';
 import { queryGemini } from '../services/geminiService';
 import MessageList from './MessageList';
 import ChatInput from './ChatInput';
@@ -22,9 +22,10 @@ const ChatInterface = () => {
   const [currentSpeakingMessage, setCurrentSpeakingMessage] = useState<string | null>(null);
   
   const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const speechServiceRef = useRef<SpeechService>(new SpeechService());
+  const speechServiceRef = useRef<SimplifiedSpeechService>(new SimplifiedSpeechService());
   const temporaryTranscriptRef = useRef<string>('');
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const messageListRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
   const { toast } = useToast();
 
@@ -47,7 +48,8 @@ const ChatInterface = () => {
   };
 
   useEffect(() => {
-    speechServiceRef.current = new SpeechService();
+    // Initialize speech service
+    speechServiceRef.current = new SimplifiedSpeechService();
     
     const speechService = speechServiceRef.current;
     
@@ -76,22 +78,29 @@ const ChatInterface = () => {
     return () => {
       speechService.cleanup();
     };
-  }, [toast]);
+  }, []);
 
+  // Load voices
   useEffect(() => {
     if ('speechSynthesis' in window) {
       speechSynthesis.onvoiceschanged = () => {
         const voices = speechSynthesis.getVoices();
-        console.log("Available voices loaded:", voices.map(v => `${v.name} (${v.lang})`));
+        console.log("Available voices loaded:", voices.length);
       };
       
       speechSynthesis.getVoices();
     }
   }, []);
 
+  // Set font size
   useEffect(() => {
     document.documentElement.style.setProperty('--message-font-size', `${fontSize}px`);
   }, [fontSize]);
+
+  // Add class to body for language-specific styling
+  useEffect(() => {
+    document.body.className = language;
+  }, [language]);
 
   const handleSendMessage = async (text: string) => {
     if (!text.trim()) return;
@@ -272,9 +281,8 @@ const ChatInterface = () => {
 
   return (
     <div 
-      className="flex flex-col h-full max-h-full rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden bg-gray-50 dark:bg-gray-950" 
+      className={`flex flex-col h-full max-h-full rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden bg-gray-50 dark:bg-gray-950 ${language}`} 
       ref={chatContainerRef}
-      style={{ WebkitOverflowScrolling: 'touch' }}
     >
       <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-black sticky top-0 z-10">
         <LanguageSelector 
@@ -299,8 +307,8 @@ const ChatInterface = () => {
         style={{
           height: "calc(100% - 120px)",
           overscrollBehavior: 'none',
-          WebkitOverflowScrolling: 'touch'
         }}
+        ref={messageListRef}
       >
         <MessageList 
           messages={messages}

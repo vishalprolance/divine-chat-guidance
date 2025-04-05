@@ -6,6 +6,7 @@ export function useSpeechSynthesis() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [highlightedWordIndex, setHighlightedWordIndex] = useState<number | null>(null);
   const [currentSpeakingMessage, setCurrentSpeakingMessage] = useState<string | null>(null);
+  const [lastSpokenLanguage, setLastSpokenLanguage] = useState<string | null>(null);
   
   const speechServiceRef = useRef<SimplifiedSpeechService>(new SimplifiedSpeechService());
 
@@ -45,12 +46,21 @@ export function useSpeechSynthesis() {
   // Load voices
   useEffect(() => {
     if ('speechSynthesis' in window) {
-      speechSynthesis.onvoiceschanged = () => {
+      const loadVoices = () => {
         const voices = speechSynthesis.getVoices();
         console.log("Available voices loaded:", voices.length);
+        
+        // Log all available voices for debugging
+        voices.forEach((voice, index) => {
+          console.log(`Voice ${index + 1}: ${voice.name} (${voice.lang})${voice.localService ? ' - Local' : ''}`);
+        });
       };
       
-      speechSynthesis.getVoices();
+      // Chrome and Edge require this event listener
+      speechSynthesis.onvoiceschanged = loadVoices;
+      
+      // For browsers that load voices immediately
+      loadVoices();
     }
   }, []);
 
@@ -59,6 +69,13 @@ export function useSpeechSynthesis() {
     
     // Set the current message being spoken so it can be highlighted
     setCurrentSpeakingMessage(text);
+    setLastSpokenLanguage(language);
+    
+    // Special debug log for Kannada and Bengali
+    if (['kn-IN', 'bn-IN'].includes(language)) {
+      console.log(`Speaking in ${language === 'kn-IN' ? 'Kannada' : 'Bengali'} using AI4Bharat TTS service when available`);
+    }
+    
     speechServiceRef.current.speak(text, language);
   };
 
@@ -73,6 +90,7 @@ export function useSpeechSynthesis() {
     isSpeaking,
     highlightedWordIndex,
     currentSpeakingMessage,
+    lastSpokenLanguage,
     speakResponse,
     stopSpeaking
   };

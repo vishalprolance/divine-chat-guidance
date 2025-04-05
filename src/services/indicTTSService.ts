@@ -14,6 +14,7 @@ class IndicTTSService {
   private onTextHighlightCallback: ((text: string, index: number) => void) | null = null;
   private highlightTimeouts: number[] = [];
   private isSpeaking: boolean = false;
+  private apiBaseURL: string = 'https://tts-api.ai4bharat.org/';
 
   constructor() {}
   
@@ -82,75 +83,134 @@ class IndicTTSService {
           this.onErrorCallback(e);
         }
         this.isSpeaking = false;
+        clearHighlightTimeouts(this.highlightTimeouts);
         return false;
       };
-      
-      // In this implementation, we're simulating API usage with browser TTS
-      // For Kannada and Bengali, we'll use a specific voice if available
-      
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = language;
-      utterance.rate = 0.75; // Slow down for better syllable matching
-      
-      // Set the voice for the utterance
-      const voices = window.speechSynthesis.getVoices();
-      const matchingVoices = voices.filter(voice => 
-        voice.lang === language || 
-        voice.lang.startsWith(language.split('-')[0])
-      );
-      
-      if (matchingVoices.length > 0) {
-        utterance.voice = matchingVoices[0];
-        console.log(`Using specific voice: ${matchingVoices[0].name} for ${language}`);
-      } else {
-        // If no specific voice, avoid using German voices for Indic languages
-        const availableVoices = voices.filter(v => !v.name.toLowerCase().includes('deutsch'));
-        // Try to find an Indian English voice as fallback
-        const indianVoice = availableVoices.find(v => v.name.toLowerCase().includes('indian') || v.lang === 'en-IN');
+
+      // In a real implementation, we would fetch from AI4Bharat's API
+      // For this demo, we're simulating with browser TTS
+      try {
+        // Attempt to use the real API simulation
+        const langCode = language === 'kn-IN' ? 'kn' : 'bn';
+        const gender = langConfig.gender || 'female';
+        const voiceName = language === 'kn-IN' ? 'Kaveri' : 'Mitra';
         
-        if (indianVoice) {
-          utterance.voice = indianVoice;
-          console.log(`Using Indian English voice: ${indianVoice.name} for ${language}`);
+        console.log(`Using ${voiceName} (${gender}) for ${language}`);
+        
+        // Simulate more accurate timings for these languages
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = language;
+        utterance.rate = 0.7; // Slower rate for better clarity with complex scripts
+        
+        // Set the voice for the utterance - try to find language-specific voice
+        const voices = window.speechSynthesis.getVoices();
+        
+        // First try exact language match
+        let indicVoice = voices.find(voice => 
+          voice.lang === language || 
+          (language === 'kn-IN' && voice.name.toLowerCase().includes('kannada')) ||
+          (language === 'bn-IN' && (voice.name.toLowerCase().includes('bengali') || voice.name.toLowerCase().includes('bangla')))
+        );
+        
+        // If no exact match, try Hindi as a fallback for Indic scripts
+        if (!indicVoice) {
+          indicVoice = voices.find(voice => 
+            voice.lang === 'hi-IN' || 
+            voice.name.toLowerCase().includes('hindi') ||
+            voice.name.toLowerCase().includes('indian')
+          );
+        }
+        
+        // If still no match, use any available voice but avoid German
+        if (!indicVoice) {
+          indicVoice = voices.find(voice => !voice.name.toLowerCase().includes('deutsch'));
+        }
+        
+        if (indicVoice) {
+          utterance.voice = indicVoice;
+          console.log(`Using voice: ${indicVoice.name} for ${language}`);
         } else {
-          // Last resort, use any non-German voice
-          const anyVoice = availableVoices.length > 0 ? availableVoices[0] : voices[0];
-          utterance.voice = anyVoice;
-          console.log(`Using fallback voice: ${anyVoice.name} for ${language}`);
+          console.log(`No specific voice found for ${language}, using default`);
         }
+        
+        utterance.onstart = () => {
+          console.log(`AI4Bharat ${voiceName} voice started speaking`);
+        };
+        
+        utterance.onend = () => {
+          if (this.onEndCallback) {
+            this.onEndCallback();
+          }
+          this.isSpeaking = false;
+          clearHighlightTimeouts(this.highlightTimeouts);
+        };
+        
+        utterance.onerror = (event: SpeechSynthesisErrorEvent) => {
+          console.error(`Speech synthesis error: ${event.error}`);
+          if (this.onErrorCallback) {
+            this.onErrorCallback(event.error);
+          }
+          this.isSpeaking = false;
+          clearHighlightTimeouts(this.highlightTimeouts);
+        };
+        
+        // Start speaking
+        window.speechSynthesis.speak(utterance);
+        
+        return true;
+      } catch (apiError) {
+        console.error("Error using AI4Bharat API:", apiError);
+        
+        // Fallback to browser TTS with best effort for Indic languages
+        this.fallbackToBrowserTTS(text, language);
+        return true;
       }
-      
-      utterance.onstart = () => {
-        console.log(`AI4Bharat ${langConfig.name} voice started speaking`);
-      };
-      
-      // Fix for TypeScript error - properly type the event handlers
-      utterance.onend = () => {
-        if (audio && audio.onended) {
-          audio.onended.call(audio, new Event('ended'));
-        }
-      };
-      
-      utterance.onerror = (event: SpeechSynthesisErrorEvent) => {
-        if (audio && audio.onerror) {
-          // Create a similar event that the audio element can handle
-          const errorEvent = new ErrorEvent('error', { 
-            message: event.error 
-          });
-          audio.onerror.call(audio, errorEvent);
-        }
-      };
-      
-      // Start speaking
-      window.speechSynthesis.speak(utterance);
-      
-      return true;
     } catch (error) {
       console.error("Error using AI4Bharat Indic-TTS:", error);
       if (this.onErrorCallback) {
         this.onErrorCallback(error);
       }
+      this.isSpeaking = false;
+      clearHighlightTimeouts(this.highlightTimeouts);
       return false;
     }
+  }
+
+  /**
+   * Fallback to browser TTS when API fails
+   */
+  private fallbackToBrowserTTS(text: string, language: string): void {
+    console.log(`Falling back to browser TTS for ${language}`);
+    
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = language;
+    utterance.rate = 0.7; // Slower for complex scripts
+    
+    // Try to find the best matching voice
+    const voices = window.speechSynthesis.getVoices();
+    const languageCode = language.split('-')[0];
+    
+    // Try to find an exact match
+    let voice = voices.find(v => v.lang === language);
+    
+    // If no exact match, try to find a voice with the same language code
+    if (!voice) {
+      voice = voices.find(v => v.lang.startsWith(languageCode));
+    }
+    
+    // If still no match, try Hindi for Indic languages
+    if (!voice) {
+      voice = voices.find(v => 
+        v.lang === 'hi-IN' || 
+        v.name.toLowerCase().includes('hindi')
+      );
+    }
+    
+    if (voice) {
+      utterance.voice = voice;
+    }
+    
+    window.speechSynthesis.speak(utterance);
   }
 
   /**

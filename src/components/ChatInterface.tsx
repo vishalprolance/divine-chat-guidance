@@ -1,33 +1,47 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
-import SimplifiedSpeechService from '../services/simplifiedSpeechService';
-import { queryGemini } from '../services/geminiService';
 import MessageList from './MessageList';
 import ChatInput from './ChatInput';
 import LanguageSelector from './LanguageSelector';
 import ChatActions from './ChatActions';
+import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
+import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
+import { useChatState } from '@/hooks/useChatState';
 
 const ChatInterface = () => {
-  const [messages, setMessages] = useState<Array<{type: 'user' | 'bot', text: string}>>([]);
-  const [input, setInput] = useState('');
-  const [isRecording, setIsRecording] = useState(false);
-  const [transcript, setTranscript] = useState('');
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
   const [language, setLanguage] = useState('en-US'); // Default language
   const [fontSize, setFontSize] = useState(16); // Default font size
-  const [highlightedWordIndex, setHighlightedWordIndex] = useState<number | null>(null);
-  const [currentSpeakingMessage, setCurrentSpeakingMessage] = useState<string | null>(null);
   
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const speechServiceRef = useRef<SimplifiedSpeechService>(new SimplifiedSpeechService());
-  const temporaryTranscriptRef = useRef<string>('');
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const messageListRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
-  const { toast } = useToast();
+
+  // Use custom hooks to manage speech, recognition, and chat state
+  const {
+    isRecording,
+    transcript,
+    toggleRecording,
+    stopRecording,
+    startRecording
+  } = useSpeechRecognition(language);
+
+  const {
+    isSpeaking,
+    highlightedWordIndex,
+    currentSpeakingMessage,
+    speakResponse,
+    stopSpeaking
+  } = useSpeechSynthesis();
+
+  const {
+    messages,
+    input,
+    setInput,
+    isProcessing,
+    handleSendMessage,
+    clearChat
+  } = useChatState();
 
   const languages = [
     { code: 'en-US', name: 'English' },
@@ -47,51 +61,6 @@ const ChatInterface = () => {
     'bn-IN': 'নির্দেশনা পেতে আপনার প্রশ্ন বলুন বা টাইপ করুন। কৃষ্ণের জ্ঞান আপনার প্রশ্নের অপেক্ষায় রয়েছে।'
   };
 
-  useEffect(() => {
-    // Initialize speech service
-    speechServiceRef.current = new SimplifiedSpeechService();
-    
-    const speechService = speechServiceRef.current;
-    
-    speechService.onSpeechStart = () => {
-      setIsSpeaking(true);
-    };
-    
-    speechService.onSpeechEnd = () => {
-      setIsSpeaking(false);
-      setHighlightedWordIndex(null);
-      setCurrentSpeakingMessage(null);
-    };
-    
-    speechService.onSpeechError = (error) => {
-      console.error("Speech error:", error);
-      setIsSpeaking(false);
-      setHighlightedWordIndex(null);
-      setCurrentSpeakingMessage(null);
-    };
-    
-    speechService.onTextHighlight = (text, index) => {
-      setHighlightedWordIndex(index);
-      setCurrentSpeakingMessage(text);
-    };
-    
-    return () => {
-      speechService.cleanup();
-    };
-  }, []);
-
-  // Load voices
-  useEffect(() => {
-    if ('speechSynthesis' in window) {
-      speechSynthesis.onvoiceschanged = () => {
-        const voices = speechSynthesis.getVoices();
-        console.log("Available voices loaded:", voices.length);
-      };
-      
-      speechSynthesis.getVoices();
-    }
-  }, []);
-
   // Set font size
   useEffect(() => {
     document.documentElement.style.setProperty('--message-font-size', `${fontSize}px`);
@@ -101,67 +70,6 @@ const ChatInterface = () => {
   useEffect(() => {
     document.body.className = language;
   }, [language]);
-
-  const handleSendMessage = async (text: string) => {
-    if (!text.trim()) return;
-
-    setMessages(prev => [...prev, { type: 'user', text }]);
-    setInput('');
-    setTranscript('');
-    temporaryTranscriptRef.current = '';
-    setIsProcessing(true);
-
-    try {
-      const response = await queryGemini(text, language);
-      
-      setMessages(prev => [...prev, { type: 'bot', text: response.text }]);
-      
-      speakResponse(response.text);
-    } catch (error) {
-      console.error("Error processing message:", error);
-      
-      const errorMessages = {
-        "en-US": "I apologize, but I'm having trouble connecting to the wisdom right now. Please try again later.",
-        "hi-IN": "मैं क्षमा चाहता हूं, लेकिन मुझे इस समय ज्ञान से जुड़ने में समस्या हो रही है। कृपया बाद में पुनः प्रयास करें।",
-        "kn-IN": "ನಾನು ಕ್ಷಮೆ ಕೇಳುತ್ತೇನೆ, ಆದರೆ ನನಗೆ ಈಗ ಜ್ಞಾನದೊಂದಿಗೆ ಸಂಪರ್ಕ ಸಾಧಿಸಲು ತೊಂದರೆಯಾಗುತ್ತಿದೆ. ದಯವಿಟ್ಟು ನಂತರ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
-        "sa-IN": "अहं क्षमां प्रार्थये, परन्तु मम अधुना ज्ञानेन सह संयोजने समस्या अस्ति। कृपया पश्चात् पुनः प्रयत्नं कुर्वन्तु।",
-        "mr-IN": "मी क्षमा मागतो, परंतु मला सध्या ज्ञानाशी जोडण्यात समस्या येत आहे. कृपया नंतर पुन्हा प्रयत्न करा.",
-        "bn-IN": "আমি ক্ষমা চাই, কিন্তু আমি এখন জ্ঞানের সাথে সংযোগ করতে সমস্যা হচ্ছে। অনুগ্রহ করে পরে আবার চেষ্টা করুন।"
-      };
-      
-      const errorMessage = errorMessages[language] || errorMessages["en-US"];
-      
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive"
-      });
-      
-      setMessages(prev => [...prev, { 
-        type: 'bot', 
-        text: errorMessage
-      }]);
-      
-      speakResponse(errorMessage);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const speakResponse = (text: string) => {
-    stopSpeaking();
-    
-    // Set the current message being spoken so it can be highlighted
-    setCurrentSpeakingMessage(text);
-    speechServiceRef.current.speak(text, language);
-  };
-
-  const stopSpeaking = () => {
-    speechServiceRef.current.stop();
-    setIsSpeaking(false);
-    setHighlightedWordIndex(null);
-    setCurrentSpeakingMessage(null);
-  };
 
   const handleLanguageChange = (value: string) => {
     setLanguage(value);
@@ -177,104 +85,25 @@ const ChatInterface = () => {
     }
   };
 
-  const clearChat = () => {
-    stopSpeaking();
-    
-    if (isRecording) {
-      stopRecording(false);
-    }
-    
-    setMessages([]);
-    setInput('');
-    setTranscript('');
-    temporaryTranscriptRef.current = '';
-    setIsProcessing(false);
-    
-    toast({
-      title: "Chat Cleared",
-      description: "All messages have been cleared.",
-    });
-  };
-
-  const toggleRecording = async () => {
-    if (!isRecording) {
-      startRecording(language);
-    } else {
-      stopRecording(true);
+  const handleToggleRecording = async () => {
+    const result = await toggleRecording();
+    if (result) {
+      handleSendMessage(result, language, speakResponse);
     }
   };
 
-  const startRecording = (selectedLanguage: string) => {
-    setTranscript('');
-    temporaryTranscriptRef.current = '';
-    
-    if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      const recognition = new SpeechRecognition();
-      
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.lang = selectedLanguage;
-      
-      recognition.onstart = () => {
-        setIsRecording(true);
-        console.log('Speech recognition started in language:', selectedLanguage);
-      };
-      
-      recognition.onresult = (event) => {
-        let currentTranscript = '';
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          currentTranscript += event.results[i][0].transcript;
-        }
-        
-        temporaryTranscriptRef.current = currentTranscript;
-        
-        setInput(currentTranscript);
-      };
-      
-      recognition.onerror = (event) => {
-        console.error('Speech recognition error:', event.error);
-        setIsRecording(false);
-        toast({
-          title: "Speech Recognition Error",
-          description: `Error: ${event.error}. Please try again.`,
-          variant: "destructive"
-        });
-      };
-      
-      recognition.onend = () => {
-        setIsRecording(false);
-      };
-      
-      recognition.start();
-      recognitionRef.current = recognition;
-    } else {
-      console.error('Speech recognition not supported in this browser');
-      toast({
-        title: "Browser Not Supported",
-        description: "Speech recognition is not supported in this browser. Please try using Chrome, Edge, or Safari.",
-        variant: "destructive"
-      });
-    }
+  const handleChatClear = () => {
+    clearChat(stopSpeaking, isRecording, stopRecording);
   };
 
-  const stopRecording = (sendTranscript: boolean = false) => {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-      setIsRecording(false);
-      
-      if (temporaryTranscriptRef.current.trim() && sendTranscript) {
-        handleSendMessage(temporaryTranscriptRef.current.trim());
-      }
-      
-      setTranscript('');
-    }
-  };
-
-  const speakLastMessage = () => {
+  const handleSpeakLastMessage = () => {
     if (messages.length > 0 && messages[messages.length - 1].type === 'bot') {
-      speakResponse(messages[messages.length - 1].text);
+      speakResponse(messages[messages.length - 1].text, language);
     }
+  };
+
+  const handleMessageSend = (text: string) => {
+    handleSendMessage(text, language, speakResponse);
   };
 
   const greetingMessage = greetingMessages[language] || greetingMessages['en-US'];
@@ -296,9 +125,9 @@ const ChatInterface = () => {
           isSpeaking={isSpeaking}
           fontSize={fontSize}
           onFontSizeChange={setFontSize}
-          onClearChat={clearChat}
+          onClearChat={handleChatClear}
           onStopSpeaking={stopSpeaking}
-          onSpeakLastMessage={speakLastMessage}
+          onSpeakLastMessage={handleSpeakLastMessage}
         />
       </div>
       
@@ -328,8 +157,8 @@ const ChatInterface = () => {
           setInput={setInput}
           isRecording={isRecording}
           isProcessing={isProcessing}
-          toggleRecording={toggleRecording}
-          handleSendMessage={handleSendMessage}
+          toggleRecording={handleToggleRecording}
+          handleSendMessage={handleMessageSend}
         />
       </div>
     </div>

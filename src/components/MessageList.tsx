@@ -71,8 +71,8 @@ const MessageList = ({
   };
 
   return (
-    <ScrollArea className="flex-1 w-full overflow-y-auto" data-test-id="message-scroll-area">
-      <div className="px-4 space-y-4 pb-6" ref={scrollAreaRef}>
+    <div className="flex-1 w-full overflow-y-auto pb-4 custom-scrollbar" style={{WebkitOverflowScrolling: 'touch'}} ref={scrollAreaRef}>
+      <div className="px-4 space-y-4 pb-6">
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-gray-500 dark:text-gray-400 animate-divine-fade-in">
             <p className="text-center mb-4" style={{ fontSize: `${fontSize}px` }}>{greetingMessage}</p>
@@ -163,6 +163,13 @@ const MessageList = ({
           animation: pulse 1s infinite;
           font-weight: 500;
           transition: all 0.2s ease;
+          background-color: rgba(144, 97, 249, 0.3);
+          border-radius: 4px;
+          padding: 0 2px;
+        }
+        
+        .dark .highlighted-word {
+          background-color: rgba(144, 97, 249, 0.5);
         }
         
         @keyframes pulse {
@@ -178,7 +185,7 @@ const MessageList = ({
         }
         `}
       </style>
-    </ScrollArea>
+    </div>
   );
 };
 

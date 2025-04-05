@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -147,6 +148,8 @@ const ChatInterface = () => {
   const speakResponse = (text: string) => {
     stopSpeaking();
     
+    // Set the current message being spoken so it can be highlighted
+    setCurrentSpeakingMessage(text);
     speechServiceRef.current.speak(text, language);
   };
 
@@ -293,7 +296,7 @@ const ChatInterface = () => {
         />
       </div>
       
-      <div className="flex-grow overflow-hidden relative">
+      <div className="flex-grow overflow-hidden relative" style={{height: "calc(100% - 120px)"}}>
         <MessageList 
           messages={messages}
           isProcessing={isProcessing}

@@ -129,8 +129,22 @@ class IndicTTSService {
         console.log(`AI4Bharat ${langConfig.name} voice started speaking`);
       };
       
-      utterance.onend = audio.onended;
-      utterance.onerror = (e) => audio.onerror!(e as any);
+      // Fix for TypeScript error - properly type the event handlers
+      utterance.onend = () => {
+        if (audio && audio.onended) {
+          audio.onended.call(audio, new Event('ended'));
+        }
+      };
+      
+      utterance.onerror = (event: SpeechSynthesisErrorEvent) => {
+        if (audio && audio.onerror) {
+          // Create a similar event that the audio element can handle
+          const errorEvent = new ErrorEvent('error', { 
+            message: event.error 
+          });
+          audio.onerror.call(audio, errorEvent);
+        }
+      };
       
       // Start speaking
       window.speechSynthesis.speak(utterance);

@@ -64,44 +64,17 @@ class IndicTTSService {
       
       console.log(`Using AI4Bharat Indic-TTS for ${language} with voice: ${langConfig.name}`);
       
-      // Create new audio element
-      const audio = new Audio();
-      this.audio = audio;
-      
-      // Set up audio events
-      audio.onended = () => {
-        if (this.onEndCallback) {
-          this.onEndCallback();
-        }
-        this.isSpeaking = false;
-        
-        // Clear highlight timeouts
-        this.clearHighlightTimeouts();
-      };
-      
-      audio.onerror = (error) => {
-        console.error("Error playing Indic TTS audio:", error);
-        if (this.onErrorCallback) {
-          this.onErrorCallback(error);
-        }
-        this.isSpeaking = false;
-      };
-      
-      // For demonstration without actual API, we'll use browser TTS
-      // But in production, this would make a real API call to AI4Bharat
-      console.log(`AI4Bharat would use ${langConfig.name} voice for "${text.substring(0, 50)}..." in ${langConfig.langCode} language`);
-      
-      // Setup text highlighting for visualization
-      this.setupTextHighlighting(text, 0.8); // Slower rate for Indic languages
+      // For demo purposes, we'll create a new utterance with the proper language
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = language;
+      utterance.rate = 0.75; // Slow down for better syllable matching
       
       this.isSpeaking = true;
       
-      // Use browser TTS with optimized parameters for Indic languages
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = language;
-      utterance.rate = 0.75;
-      utterance.pitch = 1.0;
+      // Setup more precise text highlighting with proper timing for Indic scripts
+      this.setupTextHighlighting(text, language);
       
+      // Handle speech events
       utterance.onstart = () => {
         console.log(`AI4Bharat ${langConfig.name} voice started speaking`);
       };
@@ -122,6 +95,21 @@ class IndicTTSService {
         this.isSpeaking = false;
       };
       
+      // Use the most appropriate voice available for this language
+      const voices = window.speechSynthesis.getVoices();
+      const matchingVoices = voices.filter(voice => 
+        voice.lang === language || 
+        voice.lang.startsWith(language.split('-')[0])
+      );
+      
+      if (matchingVoices.length > 0) {
+        utterance.voice = matchingVoices[0];
+        console.log(`Using voice: ${matchingVoices[0].name} for ${language}`);
+      } else {
+        // If no matching voice, just use default
+        console.log(`No matching voice found for ${language}, using default`);
+      }
+      
       // Start speaking
       window.speechSynthesis.speak(utterance);
       
@@ -138,7 +126,7 @@ class IndicTTSService {
   /**
    * Set up text highlighting with proper timing for Indic languages
    */
-  private setupTextHighlighting(text: string, rate: number): void {
+  private setupTextHighlighting(text: string, language: string): void {
     if (!this.onTextHighlightCallback) return;
     
     // Clean any existing highlight timeouts
@@ -147,16 +135,17 @@ class IndicTTSService {
     // Split text into words
     const words = text.split(/\s+/);
     
-    // Calculate average word length - slower for Indic languages
-    const avgWordsPerMinute = ['kn-IN', 'bn-IN'].includes(text) ? 100 : 140;
-    const msPerWord = 60000 / avgWordsPerMinute / (rate || 0.9);
+    // Calculate timing based on language
+    // Indic languages need slower highlighting due to complex syllables
+    const avgWordsPerMinute = language === 'kn-IN' ? 80 : language === 'bn-IN' ? 90 : 100;
+    const msPerWord = 60000 / avgWordsPerMinute;
     
     // Set up timeouts for each word
     let currentTime = 300; // Start after a short delay
     
     words.forEach((word, index) => {
       // Longer words in complex scripts need more time
-      let wordDelay = msPerWord * (1 + 0.8 * (word.length / 4));
+      let wordDelay = msPerWord * (1 + 0.5 * (word.length / 3));
       
       const timeout = window.setTimeout(() => {
         if (this.isSpeaking) {
@@ -173,10 +162,8 @@ class IndicTTSService {
    * Stops the speech and cleans up resources
    */
   public stop(): void {
-    if (this.audio) {
-      this.audio.pause();
-      this.audio.remove();
-      this.audio = null;
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
     }
     
     this.isSpeaking = false;

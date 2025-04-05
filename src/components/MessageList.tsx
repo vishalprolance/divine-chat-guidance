@@ -1,6 +1,5 @@
 
 import React, { useRef, useEffect } from 'react';
-import { ScrollArea } from './ui/scroll-area';
 
 interface Message {
   type: 'user' | 'bot';
@@ -30,6 +29,7 @@ const MessageList = ({
 }: MessageListProps) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const highlightedWordRef = useRef<HTMLSpanElement>(null);
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -37,6 +37,27 @@ const MessageList = ({
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages, transcript, isProcessing]);
+
+  // Auto-scroll to the highlighted word if it's outside viewport
+  useEffect(() => {
+    if (highlightedWordRef.current && highlightedWordIndex !== null) {
+      const wordElement = highlightedWordRef.current;
+      const container = scrollAreaRef.current;
+      
+      if (wordElement && container) {
+        const containerRect = container.getBoundingClientRect();
+        const wordRect = wordElement.getBoundingClientRect();
+        
+        // Check if word is outside the visible area
+        if (wordRect.bottom > containerRect.bottom || wordRect.top < containerRect.top) {
+          wordElement.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center'
+          });
+        }
+      }
+    }
+  }, [highlightedWordIndex]);
 
   // Helper function to highlight the currently spoken word
   const renderHighlightedText = (text: string, isCurrentlySpeaking: boolean) => {
@@ -57,7 +78,8 @@ const MessageList = ({
           // For words
           return (
             <span 
-              key={`word-${index}`} 
+              key={`word-${index}`}
+              ref={index === highlightedWordIndex ? highlightedWordRef : null} 
               className={index === highlightedWordIndex ? 
                 'highlighted-word bg-purple-200 dark:bg-purple-800 rounded px-1 py-0.5' : 
                 ''}
@@ -77,7 +99,7 @@ const MessageList = ({
         WebkitOverflowScrolling: 'touch',
         height: '100%',
         overflowY: 'auto',
-        overscrollBehavior: 'touch',
+        overscrollBehavior: 'contain',
         touchAction: 'pan-y'
       }} 
       ref={scrollAreaRef}
@@ -176,10 +198,12 @@ const MessageList = ({
           background-color: rgba(144, 97, 249, 0.3);
           border-radius: 4px;
           padding: 0 2px;
+          box-shadow: 0 0 4px rgba(144, 97, 249, 0.5);
         }
         
         .dark .highlighted-word {
           background-color: rgba(144, 97, 249, 0.5);
+          box-shadow: 0 0 4px rgba(144, 97, 249, 0.7);
         }
         
         @keyframes pulse {

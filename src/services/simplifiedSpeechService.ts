@@ -60,10 +60,12 @@ class SimplifiedSpeechService {
     // Stop any existing speech
     this.stop();
     
-    // For Kannada and Bengali, use AI4Bharat service
+    // For Kannada and Bengali, ALWAYS use AI4Bharat service
     if (['kn-IN', 'bn-IN'].includes(language)) {
+      console.log(`Using AI4Bharat for ${language}`);
       const indicSuccess = await this.indicService.speak(text, language);
       if (indicSuccess) return;
+      console.warn(`AI4Bharat failed for ${language}, falling back to browser TTS`);
     }
     
     // For other languages or as fallback, use browser TTS
@@ -87,12 +89,15 @@ class SimplifiedSpeechService {
     utterance.lang = language;
     this.utterance = utterance;
     
-    // Adjust speech parameters
+    // Adjust speech parameters based on language
     let rate = 1.0;
     if (['hi-IN', 'mr-IN'].includes(language)) {
       rate = 0.85;
     } else if (['sa-IN'].includes(language)) {
       rate = 0.8;
+    } else if (['kn-IN', 'bn-IN'].includes(language)) {
+      // Even slower for complex scripts
+      rate = 0.75;
     } else {
       rate = 0.9;
     }
@@ -114,7 +119,7 @@ class SimplifiedSpeechService {
     // Setup event handlers
     utterance.onstart = () => {
       this.isSpeaking = true;
-      this.setupTextHighlighting(text, rate);
+      this.setupTextHighlighting(text, rate, language);
       if (this.onSpeechStart) this.onSpeechStart();
     };
     
@@ -142,9 +147,9 @@ class SimplifiedSpeechService {
   }
 
   /**
-   * Set up text highlighting with proper timing
+   * Set up text highlighting with proper timing adjusted for each language
    */
-  private setupTextHighlighting(text: string, rate: number): void {
+  private setupTextHighlighting(text: string, rate: number, language: string): void {
     if (!this.onTextHighlight) return;
     
     this.textToHighlight = text;
@@ -157,14 +162,36 @@ class SimplifiedSpeechService {
     const words = text.split(/\s+/);
     
     // Calculate time per word based on language complexity
-    const msPerWord = 60000 / 160 / (rate || 0.9);
+    let avgWordsPerMinute;
+    if (language === 'kn-IN') {
+      avgWordsPerMinute = 80; // Slowest for Kannada
+    } else if (language === 'bn-IN') {
+      avgWordsPerMinute = 90; // Slow for Bengali
+    } else if (['hi-IN', 'mr-IN', 'sa-IN'].includes(language)) {
+      avgWordsPerMinute = 110; // Medium for other Indic languages
+    } else {
+      avgWordsPerMinute = 140; // Default for Latin script
+    }
+    
+    const msPerWord = 60000 / avgWordsPerMinute / (rate || 0.9);
     
     // Set up timeouts for each word
     let currentTime = 300; // Start after a short delay
     
     words.forEach((word, index) => {
-      // Calculate delay based on word length
-      const wordDelay = msPerWord * (0.7 + 0.6 * (word.length / 5));
+      // Calculate delay based on word length and language
+      let wordDelay;
+      
+      if (['kn-IN', 'bn-IN'].includes(language)) {
+        // Kannada and Bengali words need more time per character
+        wordDelay = msPerWord * (1 + 0.8 * (word.length / 4));
+      } else if (['hi-IN', 'mr-IN', 'sa-IN'].includes(language)) {
+        // Hindi, Marathi and Sanskrit
+        wordDelay = msPerWord * (1 + 0.6 * (word.length / 5));
+      } else {
+        // Latin script
+        wordDelay = msPerWord * (0.8 + 0.5 * (word.length / 6));
+      }
       
       const timeout = window.setTimeout(() => {
         if (this.isSpeaking) {
